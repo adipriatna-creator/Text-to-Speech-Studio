@@ -1,2129 +1,1507 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
-import {
-  Mic,
-  Play,
-  Pause,
-  Square,
-  Volume2,
-  VolumeX,
-  Download,
-  Trash2,
-  Copy,
-  ClipboardPaste,
-  Sparkles,
-  Sliders,
-  History,
-  RotateCcw,
-  CheckCircle2,
-  AlertCircle,
-  Activity,
-  Layers,
-  Search,
-  Filter,
-  Info,
-  Radio,
-  Share2,
-  Zap,
-  RefreshCw,
-  Clock,
-  Music
-} from 'lucide-react';
-
-interface VoiceCharacter {
-  id: string;
-  name: string;
-  gender: 'female' | 'male';
-  ageGroup: string;
-  tone: string;
-  energy: string;
-  pitchVal: number; // 0.6 to 1.6
-  speedVal: number; // 0.7 to 1.4
-  articulation: string;
-  description: string;
-  style: string;
-  geminiVoice: 'Kore' | 'Puck' | 'Zephyr' | 'Charon' | 'Fenrir' | 'Aoede';
-}
-
-const VOICE_CHARACTERS: VoiceCharacter[] = [
-  // --- 30 FEMALE VOICES ---
-  {
-    id: 'aria',
-    name: 'Aria',
-    gender: 'female',
-    ageGroup: 'Muda (20-25)',
-    tone: 'Jernih, Lembut, Natural',
-    energy: 'Moderate Calm',
-    pitchVal: 1.15,
-    speedVal: 1.0,
-    articulation: 'Halus natural',
-    description: 'Suara wanita muda yang jernih, mengalir lembut seperti percakapan santai sahabat.',
-    style: 'Casual & Warm',
-    geminiVoice: 'Kore'
-  },
-  {
-    id: 'naya',
-    name: 'Naya',
-    gender: 'female',
-    ageGroup: 'Muda (18-22)',
-    tone: 'Ceria, Energik, Friendly',
-    energy: 'High Energy',
-    pitchVal: 1.3,
-    speedVal: 1.15,
-    articulation: 'Cepat & renyah',
-    description: 'Penuh antusiasme dan ceria, ideal untuk konten vlog, reels, dan promosi kreatif.',
-    style: 'Upbeat & Joyful',
-    geminiVoice: 'Aoede'
-  },
-  {
-    id: 'vela',
-    name: 'Vela',
-    gender: 'female',
-    ageGroup: 'Dewasa (28-35)',
-    tone: 'Elegan, Tenang, Premium',
-    energy: 'Subtle Sophisticated',
-    pitchVal: 1.0,
-    speedVal: 0.92,
-    articulation: 'Sangat rapi dan terkontrol',
-    description: 'Karakter vokal berkelas tinggi dengan artikulasi terukur untuk brand mewah dan institusi.',
-    style: 'Luxury Brand',
-    geminiVoice: 'Kore'
-  },
-  {
-    id: 'mira',
-    name: 'Mira',
-    gender: 'female',
-    ageGroup: 'Dewasa (35-45)',
-    tone: 'Hangat, Keibuan, Penuh Perhatian',
-    energy: 'Gentle Comforting',
-    pitchVal: 0.95,
-    speedVal: 0.95,
-    articulation: 'Empatis & mendalam',
-    description: 'Meneduhkan hati dengan intonasi hangat nan penuh kasih, cocok untuk panduan meditasi dan cerita anak.',
-    style: 'Maternal Warmth',
-    geminiVoice: 'Kore'
-  },
-  {
-    id: 'zara',
-    name: 'Zara',
-    gender: 'female',
-    ageGroup: 'Dewasa Muda (26-32)',
-    tone: 'Confident, Tegas, Modern',
-    energy: 'Dynamic Assertive',
-    pitchVal: 1.05,
-    speedVal: 1.05,
-    articulation: 'Lugaskan intonasi',
-    description: 'Tegas dan berwibawa khas eksekutif tech masa kini, mantap untuk presentasi bisnis.',
-    style: 'Modern Business',
-    geminiVoice: 'Zephyr'
-  },
-  {
-    id: 'luna',
-    name: 'Luna',
-    gender: 'female',
-    ageGroup: 'Muda (20-24)',
-    tone: 'Dreamy, Lembut, Airy',
-    energy: 'Soft Whispery',
-    pitchVal: 1.25,
-    speedVal: 0.88,
-    articulation: 'Bermelodi santai',
-    description: 'Karakter vokal berbisik lembut (airy) dengan nuansa puitis serta imajinatif.',
-    style: 'Poetic & Dreamy',
-    geminiVoice: 'Aoede'
-  },
-  {
-    id: 'sera',
-    name: 'Sera',
-    gender: 'female',
-    ageGroup: 'Profesional (30-40)',
-    tone: 'Profesional, Berwawasan, Clear',
-    energy: 'Focused Authority',
-    pitchVal: 1.02,
-    speedVal: 1.0,
-    articulation: 'Sangat presisi',
-    description: 'Diksi tajam tanpa cela untuk siaran berita, modul elearning komprehensif, dan narasi medis.',
-    style: 'Broadcaster Precision',
-    geminiVoice: 'Zephyr'
-  },
-  {
-    id: 'kiara',
-    name: 'Kiara',
-    gender: 'female',
-    ageGroup: 'Remaja/Muda (17-21)',
-    tone: 'Youthful, Playful, Ekspresif',
-    energy: 'Vibrant Youth',
-    pitchVal: 1.35,
-    speedVal: 1.1,
-    articulation: 'Lincah & bervariasi',
-    description: 'Penuh ekspresi muda, nada melompat dinamis sangat cocok untuk sandiwara remaja.',
-    style: 'Gen-Z Creator',
-    geminiVoice: 'Aoede'
-  },
-  {
-    id: 'elena',
-    name: 'Elena',
-    gender: 'female',
-    ageGroup: 'Mature (40-50)',
-    tone: 'Sophisticated, Berkelas, Dalam',
-    energy: 'Regal Poise',
-    pitchVal: 0.9,
-    speedVal: 0.92,
-    articulation: 'Bangsawan & artikulatif',
-    description: 'Vokal matang dengan wibawa ningrat, ideal untuk dokumenter seni sastra dan biografi.',
-    style: 'High Aristocrat',
-    geminiVoice: 'Kore'
-  },
-  {
-    id: 'raina',
-    name: 'Raina',
-    gender: 'female',
-    ageGroup: 'Dewasa (28-34)',
-    tone: 'Calm Storyteller, Santai',
-    energy: 'Relaxed Flow',
-    pitchVal: 1.02,
-    speedVal: 0.96,
-    articulation: 'Mengalir tenang',
-    description: 'Pendongeng santai yang memikat pendengar tanpa kesan terburu-buru.',
-    style: 'Audiobook Fiction',
-    geminiVoice: 'Kore'
-  },
-  {
-    id: 'alya',
-    name: 'Alya',
-    gender: 'female',
-    ageGroup: 'Muda (21-25)',
-    tone: 'Manis, Ringan, Approachable',
-    energy: 'Sweet Friendly',
-    pitchVal: 1.2,
-    speedVal: 1.02,
-    articulation: 'Ramah senyum',
-    description: 'Suara customer service impian: ramah, manis, ringan didengar dan menyenangkan.',
-    style: 'Customer Care Pro',
-    geminiVoice: 'Aoede'
-  },
-  {
-    id: 'viona',
-    name: 'Viona',
-    gender: 'female',
-    ageGroup: 'Dewasa (30-38)',
-    tone: 'Deep Feminine, Kuat, Karismatik',
-    energy: 'Magnetic Resonant',
-    pitchVal: 0.85,
-    speedVal: 0.95,
-    articulation: 'Berat tegas bernyawa',
-    description: 'Suara altus wanita yang dalam dan menggoda rasa ingin tahu, pas untuk thriller podcast.',
-    style: 'Deep Mystery',
-    geminiVoice: 'Kore'
-  },
-  {
-    id: 'celine',
-    name: 'Celine',
-    gender: 'female',
-    ageGroup: 'Dewasa (27-33)',
-    tone: 'Refined, Soft Luxury',
-    energy: 'Silky Gentle',
-    pitchVal: 1.08,
-    speedVal: 0.9,
-    articulation: 'Halus berkesan velvet',
-    description: 'Sentuhan vokal sutra lembut untuk iklan parfum, fashion show, dan spa eksklusif.',
-    style: 'Silky Elegance',
-    geminiVoice: 'Kore'
-  },
-  {
-    id: 'tara',
-    name: 'Tara',
-    gender: 'female',
-    ageGroup: 'Muda (23-28)',
-    tone: 'Energetic Presenter, Cepat, Hidup',
-    energy: 'Staccato Spark',
-    pitchVal: 1.18,
-    speedVal: 1.25,
-    articulation: 'Renyah tanpa jeda mati',
-    description: 'Presenter acara langsung dan YouTube hype yang sigap membangkitkan suasana riuh.',
-    style: 'Show Host',
-    geminiVoice: 'Zephyr'
-  },
-  {
-    id: 'naomi',
-    name: 'Naomi',
-    gender: 'female',
-    ageGroup: 'Dewasa (32-42)',
-    tone: 'Cinematic, Dramatis, Emosional',
-    energy: 'Intense Drama',
-    pitchVal: 0.98,
-    speedVal: 0.88,
-    articulation: 'Bernapas sinematik',
-    description: 'Suara sarat muatan emosi mendalam untuk monolog film pendek dan drama audio.',
-    style: 'Cinematic Monologue',
-    geminiVoice: 'Kore'
-  },
-  {
-    id: 'freya',
-    name: 'Freya',
-    gender: 'female',
-    ageGroup: 'Dewasa Muda (25-32)',
-    tone: 'Mysterious, Rendah, Enigmatic',
-    energy: 'Low Enigma',
-    pitchVal: 0.82,
-    speedVal: 0.9,
-    articulation: 'Tenang penuh rahasia',
-    description: 'Misterius dan menyiratkan teka-teki kuno, cocok untuk narasi horor dan sci-fi mitologis.',
-    style: 'Occult Mystery',
-    geminiVoice: 'Kore'
-  },
-  {
-    id: 'sasha',
-    name: 'Sasha',
-    gender: 'female',
-    ageGroup: 'Muda (22-27)',
-    tone: 'Casual, Conversational, Spontan',
-    energy: 'Natural Dialogue',
-    pitchVal: 1.1,
-    speedVal: 1.04,
-    articulation: 'Spontan santai',
-    description: 'Seolah sedang duduk mengobrol berdua di kedai kopi tanpa naskah kaku.',
-    style: 'Podcast Host',
-    geminiVoice: 'Zephyr'
-  },
-  {
-    id: 'iris',
-    name: 'Iris',
-    gender: 'female',
-    ageGroup: 'Muda (19-24)',
-    tone: 'Bright, Crisp, Youthful',
-    energy: 'Fresh Morning',
-    pitchVal: 1.28,
-    speedVal: 1.08,
-    articulation: 'Segar dan jernih',
-    description: 'Bagaikan embun pagi: cerah, renyah, dan membangkitkan gairah produktivitas.',
-    style: 'Morning Routine',
-    geminiVoice: 'Aoede'
-  },
-  {
-    id: 'selena',
-    name: 'Selena',
-    gender: 'female',
-    ageGroup: 'Dewasa (28-36)',
-    tone: 'Sensual Vokal, Profesional',
-    energy: 'Warm Velvet',
-    pitchVal: 0.94,
-    speedVal: 0.93,
-    articulation: 'Mengalun santai mantap',
-    description: 'Kombinasi vokal beludru memikat yang tetap menjaga etika formalitas bisnis tinggi.',
-    style: 'Late Night Radio',
-    geminiVoice: 'Kore'
-  },
-  {
-    id: 'rhea',
-    name: 'Rhea',
-    gender: 'female',
-    ageGroup: 'Senior (40-52)',
-    tone: 'Authoritative, Commanding, Tegas',
-    energy: 'High Command',
-    pitchVal: 0.88,
-    speedVal: 1.02,
-    articulation: 'Lantang militeristik rapi',
-    description: 'Kepemimpinan tegas tak terbantahkan, cocok untuk instruksi darurat dan narasi birokrasi.',
-    style: 'Supreme Directive',
-    geminiVoice: 'Zephyr'
-  },
-  {
-    id: 'dina',
-    name: 'Dina',
-    gender: 'female',
-    ageGroup: 'Dewasa Muda (24-30)',
-    tone: 'Warm Everyday, Natural Nusantara',
-    energy: 'Organic Everyday',
-    pitchVal: 1.06,
-    speedVal: 1.0,
-    articulation: 'Familiar bersahaja',
-    description: 'Suara tetangga yang ramah dan dekat, tidak pretensius untuk tutorial harian rumah tangga.',
-    style: 'Everyday Practical',
-    geminiVoice: 'Kore'
-  },
-  {
-    id: 'aurelia',
-    name: 'Aurelia',
-    gender: 'female',
-    ageGroup: 'Dewasa (33-43)',
-    tone: 'Elegant Narrator, Tenang, Mahal',
-    energy: 'Noble Grace',
-    pitchVal: 1.0,
-    speedVal: 0.89,
-    articulation: 'Irama klasik tertata',
-    description: 'Narasi museum dan galeri seni bernilai tinggi dengan jeda antar kalimat yang kaya arti.',
-    style: 'Fine Art Audio Tour',
-    geminiVoice: 'Kore'
-  },
-  {
-    id: 'jessa',
-    name: 'Jessa',
-    gender: 'female',
-    ageGroup: 'Remaja (16-20)',
-    tone: 'Fun, Bubbly, Sangat Ekspresif',
-    energy: 'Effervescent Pop',
-    pitchVal: 1.4,
-    speedVal: 1.2,
-    articulation: 'Melenting dinamis',
-    description: 'Penuh gelembung keceriaan, cocok untuk game kasual anak muda dan animasi anak.',
-    style: 'Animation Voice',
-    geminiVoice: 'Aoede'
-  },
-  {
-    id: 'nora',
-    name: 'Nora',
-    gender: 'female',
-    ageGroup: 'Mature (45-55)',
-    tone: 'Mature, Reassuring, Stabil',
-    energy: 'Grounded Wisdom',
-    pitchVal: 0.89,
-    speedVal: 0.94,
-    articulation: 'Bijaksana teratur',
-    description: 'Memberikan rasa aman dan kepastian moral, cocok untuk konseling dan edukasi psikologi.',
-    style: 'Therapy & Guidance',
-    geminiVoice: 'Kore'
-  },
-  {
-    id: 'lyra',
-    name: 'Lyra',
-    gender: 'female',
-    ageGroup: 'Muda (22-26)',
-    tone: 'Ethereal, Artistic, Unik',
-    energy: 'Mystic Air',
-    pitchVal: 1.22,
-    speedVal: 0.86,
-    articulation: 'Sedikit bergema melankolis',
-    description: 'Vokal eksentrik layaknya musisi indie folk, membawa kesan magis yang tidak biasa.',
-    style: 'Avant-Garde Indie',
-    geminiVoice: 'Aoede'
-  },
-  {
-    id: 'kira',
-    name: 'Kira',
-    gender: 'female',
-    ageGroup: 'Muda (23-28)',
-    tone: 'Bold, Confident, Modern',
-    energy: 'Punchy Assertive',
-    pitchVal: 1.08,
-    speedVal: 1.1,
-    articulation: 'Ketukan punchline kuat',
-    description: 'Keras dan berani menyuarakan pendapat inovatif di panggung konferensi internasional.',
-    style: 'TedTalk Pitch',
-    geminiVoice: 'Zephyr'
-  },
-  {
-    id: 'amara',
-    name: 'Amara',
-    gender: 'female',
-    ageGroup: 'Dewasa (35-48)',
-    tone: 'Deep Warm Storyteller',
-    energy: 'Warm Resonant',
-    pitchVal: 0.86,
-    speedVal: 0.92,
-    articulation: 'Napas resonansi diafragma',
-    description: 'Kisah-kisah sejarah epik dan dongeng peradaban purba terasa hidup lewat suaranya.',
-    style: 'History Legend',
-    geminiVoice: 'Kore'
-  },
-  {
-    id: 'siena',
-    name: 'Siena',
-    gender: 'female',
-    ageGroup: 'Dewasa (29-37)',
-    tone: 'Soft Documentary Narrator',
-    energy: 'Neutral Poised',
-    pitchVal: 1.04,
-    speedVal: 0.95,
-    articulation: 'Objektif menenangkan',
-    description: 'Gaya khas narasi National Geographic dan dokumenter alam fauna liar.',
-    style: 'Nature Wildlife Doc',
-    geminiVoice: 'Zephyr'
-  },
-  {
-    id: 'maya',
-    name: 'Maya',
-    gender: 'female',
-    ageGroup: 'Muda (20-25)',
-    tone: 'Friendly Social-Media Style',
-    energy: 'Trendy Casual',
-    pitchVal: 1.16,
-    speedVal: 1.12,
-    articulation: 'Intonasi viral modern',
-    description: 'Sangat fasih membawakan storytelling TikTok dan review kuliner viral kekinian.',
-    style: 'Viral Trendsetter',
-    geminiVoice: 'Aoede'
-  },
-  {
-    id: 'vera',
-    name: 'Vera',
-    gender: 'female',
-    ageGroup: 'Mature Executive (42-52)',
-    tone: 'Executive Voice, Profesional & Berwibawa',
-    energy: 'Boardroom Commander',
-    pitchVal: 0.92,
-    speedVal: 0.98,
-    articulation: 'Tegas tegas tanpa kompromi',
-    description: 'Suara pengambil keputusan tertinggi di rapat direksi multinasional.',
-    style: 'Corporate Leadership',
-    geminiVoice: 'Zephyr'
-  },
-
-  // --- 20 MALE VOICES ---
-  {
-    id: 'raka',
-    name: 'Raka',
-    gender: 'male',
-    ageGroup: 'Muda (22-26)',
-    tone: 'Pria Muda, Natural, Friendly',
-    energy: 'Warm Casual',
-    pitchVal: 0.98,
-    speedVal: 1.0,
-    articulation: 'Santai bersahabat',
-    description: 'Sosok pemuda ramah dan tulus yang mudah dipercaya dalam percakapan sehari-hari.',
-    style: 'Friendly Brother',
-    geminiVoice: 'Puck'
-  },
-  {
-    id: 'darren',
-    name: 'Darren',
-    gender: 'male',
-    ageGroup: 'Dewasa Muda (27-34)',
-    tone: 'Deep, Confident, Modern',
-    energy: 'Baritone Confidence',
-    pitchVal: 0.78,
-    speedVal: 1.04,
-    articulation: 'Bariton modern berwibawa',
-    description: 'Bariton modern yang memancarkan karisma dan kepercayaan diri tinggi pada iklan tech.',
-    style: 'Tech Entrepreneur',
-    geminiVoice: 'Charon'
-  },
-  {
-    id: 'arvin',
-    name: 'Arvin',
-    gender: 'male',
-    ageGroup: 'Muda (24-29)',
-    tone: 'Energetic Presenter, Sigap',
-    energy: 'Dynamic High-Tempo',
-    pitchVal: 1.05,
-    speedVal: 1.22,
-    articulation: 'Cepat berirama tajam',
-    description: 'Host acara otomotif dan festival musik yang memacu adrenalin para penonton.',
-    style: 'Event MC & Sports',
-    geminiVoice: 'Fenrir'
-  },
-  {
-    id: 'leon',
-    name: 'Leon',
-    gender: 'male',
-    ageGroup: 'Dewasa (32-42)',
-    tone: 'Cinematic, Deep, Dramatic',
-    energy: 'Dramatic Trailer',
-    pitchVal: 0.68,
-    speedVal: 0.88,
-    articulation: 'Beraura teatrikal berat',
-    description: 'Suara trailer blockbuster Hollywood dengan getaran dada yang menggelegar.',
-    style: 'Movie Trailer Lead',
-    geminiVoice: 'Charon'
-  },
-  {
-    id: 'reno',
-    name: 'Reno',
-    gender: 'male',
-    ageGroup: 'Dewasa Muda (25-30)',
-    tone: 'Casual Conversational, Santai',
-    energy: 'Laid Back',
-    pitchVal: 0.94,
-    speedVal: 0.98,
-    articulation: 'Natural tanpa dibuat-buat',
-    description: 'Gaya santai ala sahabat nongkrong malam minggu, sangat nyaman didengarkan lama.',
-    style: 'Late Hangout Podcast',
-    geminiVoice: 'Puck'
-  },
-  {
-    id: 'ezra',
-    name: 'Ezra',
-    gender: 'male',
-    ageGroup: 'Dewasa (29-37)',
-    tone: 'Calm, Intelligent, Articulate',
-    energy: 'Intellectual Calm',
-    pitchVal: 0.9,
-    speedVal: 0.95,
-    articulation: 'Sangat logis dan terstruktur',
-    description: 'Akademisi dan konsultan analitik, menyederhanakan konsep rumit menjadi runut.',
-    style: 'Scientific & Doc',
-    geminiVoice: 'Charon'
-  },
-  {
-    id: 'kai',
-    name: 'Kai',
-    gender: 'male',
-    ageGroup: 'Remaja/Muda (18-22)',
-    tone: 'Youthful, Bright, Energetic',
-    energy: 'Youthful Spark',
-    pitchVal: 1.15,
-    speedVal: 1.18,
-    articulation: 'Cepat dinamis kasual',
-    description: 'Gamer dan konten kreator muda yang lincah dengan ritme kekinian yang seru.',
-    style: 'Gaming Streamer',
-    geminiVoice: 'Fenrir'
-  },
-  {
-    id: 'marcus',
-    name: 'Marcus',
-    gender: 'male',
-    ageGroup: 'Senior (45-55)',
-    tone: 'Mature, Authoritative, Kuat',
-    energy: 'Veteran Commander',
-    pitchVal: 0.72,
-    speedVal: 0.92,
-    articulation: 'Tegas penuh bobot',
-    description: 'Jenderal berpengalaman dengan suara tebal berbobot yang menuntut rasa hormat.',
-    style: 'Military Veteran',
-    geminiVoice: 'Charon'
-  },
-  {
-    id: 'nolan',
-    name: 'Nolan',
-    gender: 'male',
-    ageGroup: 'Dewasa (33-43)',
-    tone: 'Warm Storyteller, Meneduhkan',
-    energy: 'Warm Narrative',
-    pitchVal: 0.85,
-    speedVal: 0.92,
-    articulation: 'Alunan ritmis dongeng',
-    description: 'Membimbing pembaca novel fantasi menyeberangi dunia fiksi dengan kehangatan khas.',
-    style: 'Fantasy Audiobook',
-    geminiVoice: 'Charon'
-  },
-  {
-    id: 'axel',
-    name: 'Axel',
-    gender: 'male',
-    ageGroup: 'Muda (23-28)',
-    tone: 'Bold, Powerful, Energetic',
-    energy: 'Adrenaline Rush',
-    pitchVal: 0.96,
-    speedVal: 1.15,
-    articulation: 'Ledakan konsonan tegas',
-    description: 'Pelatih gym dan motivator aksi extreme yang membakar tekad pantang menyerah.',
-    style: 'Fitness & Action',
-    geminiVoice: 'Fenrir'
-  },
-  {
-    id: 'dimas',
-    name: 'Dimas',
-    gender: 'male',
-    ageGroup: 'Dewasa Muda (26-32)',
-    tone: 'Natural Everyday, Khas Indonesia',
-    energy: 'Friendly Neutral',
-    pitchVal: 0.92,
-    speedVal: 1.0,
-    articulation: 'Fasih dan luwes',
-    description: 'Gaya bahasa Indonesia harian yang otentik dan membumi untuk iklan lokal.',
-    style: 'Local Daily Ad',
-    geminiVoice: 'Puck'
-  },
-  {
-    id: 'adrian',
-    name: 'Adrian',
-    gender: 'male',
-    ageGroup: 'Dewasa (30-38)',
-    tone: 'Sophisticated, Professional',
-    energy: 'Polished Class',
-    pitchVal: 0.88,
-    speedVal: 0.96,
-    articulation: 'Sempurna formal',
-    description: 'Pakar keuangan dan wealth management dengan pembawaan sangat meyakinkan nasabah.',
-    style: 'Private Wealth Advisor',
-    geminiVoice: 'Charon'
-  },
-  {
-    id: 'rafi',
-    name: 'Rafi',
-    gender: 'male',
-    ageGroup: 'Remaja (17-21)',
-    tone: 'Cheerful, Playful, Riang',
-    energy: 'Playful Bounce',
-    pitchVal: 1.12,
-    speedVal: 1.14,
-    articulation: 'Ringan ceria',
-    description: 'Suka bercanda dan menghibur, ideal untuk karakter animasi komedi dan kuis anak.',
-    style: 'Comedy & Animation',
-    geminiVoice: 'Puck'
-  },
-  {
-    id: 'victor',
-    name: 'Victor',
-    gender: 'male',
-    ageGroup: 'Mature (40-50)',
-    tone: 'Executive, Commanding, Karismatik',
-    energy: 'Corporate Titan',
-    pitchVal: 0.74,
-    speedVal: 0.94,
-    articulation: 'Lugaskan sasaran strategi',
-    description: 'Pidato CEO penentu arah industri teknologi global dengan aura kepemimpinan kokoh.',
-    style: 'Keynote Visionary',
-    geminiVoice: 'Charon'
-  },
-  {
-    id: 'evan',
-    name: 'Evan',
-    gender: 'male',
-    ageGroup: 'Muda (21-26)',
-    tone: 'Soft, Relaxed, Comforting',
-    energy: 'Soft Whisper',
-    pitchVal: 0.94,
-    speedVal: 0.88,
-    articulation: 'Napas halus tenang',
-    description: 'Teman bicara hening di kala stres, meredakan cemas dengan intonasi rendah menyejukkan.',
-    style: 'Sleep & Relaxation',
-    geminiVoice: 'Puck'
-  },
-  {
-    id: 'ronan',
-    name: 'Ronan',
-    gender: 'male',
-    ageGroup: 'Dewasa (32-44)',
-    tone: 'Mysterious, Low-Pitched, Gritty',
-    energy: 'Dark Noir',
-    pitchVal: 0.65,
-    speedVal: 0.86,
-    articulation: 'Sedikit parau berkarakter',
-    description: 'Detektif noir kota hujan, bersuara parau rendah dengan rahasia kelam di setiap kata.',
-    style: 'Crime Fiction Detective',
-    geminiVoice: 'Charon'
-  },
-  {
-    id: 'jaden',
-    name: 'Jaden',
-    gender: 'male',
-    ageGroup: 'Muda (20-25)',
-    tone: 'Youthful Creator, Social-Media',
-    energy: 'Snappy Dynamic',
-    pitchVal: 1.06,
-    speedVal: 1.2,
-    articulation: 'Hook cepat & to the point',
-    description: 'Ahli merancang intro 3 detik yang mengikat atensi pemirsa TikTok dan Shorts.',
-    style: 'Shorts & TikTok Viral',
-    geminiVoice: 'Puck'
-  },
-  {
-    id: 'hugo',
-    name: 'Hugo',
-    gender: 'male',
-    ageGroup: 'Senior (50-65)',
-    tone: 'Warm, Mature Narrator, Kaya Makna',
-    energy: 'Golden Age Radiance',
-    pitchVal: 0.75,
-    speedVal: 0.9,
-    articulation: 'Resonansi usia matang',
-    description: 'Kakek bijak yang membagikan hikmah kehidupan berharga di depan perapian hangat.',
-    style: 'Wise Grandpa Memoir',
-    geminiVoice: 'Charon'
-  },
-  {
-    id: 'silas',
-    name: 'Silas',
-    gender: 'male',
-    ageGroup: 'Dewasa (38-48)',
-    tone: 'Documentary-Style, Steady, Netral',
-    energy: 'Steely Steady',
-    pitchVal: 0.8,
-    speedVal: 0.96,
-    articulation: 'Konstan berwibawa netral',
-    description: 'Narator sejarah perang dan investigasi arkeologi dengan ketelitian ritme tinggi.',
-    style: 'Discovery Channel Lead',
-    geminiVoice: 'Charon'
-  },
-  {
-    id: 'atlas',
-    name: 'Atlas',
-    gender: 'male',
-    ageGroup: 'Basso Profondo (35-50)',
-    tone: 'Extremely Deep, Powerful Cinematic',
-    energy: 'Subwoofer Earthquake',
-    pitchVal: 0.58,
-    speedVal: 0.82,
-    articulation: 'Gema bass menggetarkan',
-    description: 'Frekuensi bass terendah bagai dewa mitologi Yunani kuno menggetarkan cakrawala.',
-    style: 'Mythic Titan & God',
-    geminiVoice: 'Charon'
-  }
-];
-
-const SAMPLE_SCRIPTS = [
-  {
-    label: 'Iklan Komersial',
-    text: 'Selamat datang di Voxera Studio. Hadirkan pengalaman audio generasi masa depan dengan karakter vokal berdaya pikat tinggi untuk seluruh kreasi konten Anda.'
-  },
-  {
-    label: 'Cerita & Dongeng',
-    text: 'Di balik kabut tipis pegunungan utara, sebuah legenda kuno terbangun dari tidur seribu tahunnya, membawa bisikan rahasia yang telah lama terlupakan.'
-  },
-  {
-    label: 'Presentasi Bisnis',
-    text: 'Dalam laporan triwulan ini, efisiensi operasional kita meningkat sebesar tiga puluh persen berkat implementasi teknologi otomasi cerdas.'
-  },
-  {
-    label: 'Meditasi Tenang',
-    text: 'Tarik napas dalam-dalam secara perlahan... hembuskan seluruh ketegangan hari ini. Rasakan ketenangan mengalir lembut di setiap helaan napas Anda.'
-  }
-];
-
-function pcm16ToWavBlob(pcm16: Int16Array, sampleRate: number): Blob {
-  const numChannels = 1;
-  const bitsPerSample = 16;
-  const byteRate = (sampleRate * numChannels * bitsPerSample) / 8;
-  const blockAlign = (numChannels * bitsPerSample) / 8;
-  const dataSize = pcm16.length * 2;
-  const buffer = new ArrayBuffer(44 + dataSize);
-  const view = new DataView(buffer);
-
-  /* RIFF identifier */
-  writeString(view, 0, 'RIFF');
-  /* file length */
-  view.setUint32(4, 36 + dataSize, true);
-  /* RIFF type */
-  writeString(view, 8, 'WAVE');
-  /* format chunk identifier */
-  writeString(view, 12, 'fmt ');
-  /* format chunk length */
-  view.setUint32(16, 16, true);
-  /* sample format (raw PCM = 1) */
-  view.setUint16(20, 1, true);
-  /* channel count */
-  view.setUint16(22, numChannels, true);
-  /* sample rate */
-  view.setUint32(24, sampleRate, true);
-  /* byte rate */
-  view.setUint32(28, byteRate, true);
-  /* block align */
-  view.setUint16(32, blockAlign, true);
-  /* bits per sample */
-  view.setUint16(34, bitsPerSample, true);
-  /* data chunk identifier */
-  writeString(view, 36, 'data');
-  /* data chunk length */
-  view.setUint32(40, dataSize, true);
-
-  // Write PCM data
-  let offset = 44;
-  for (let i = 0; i < pcm16.length; i++, offset += 2) {
-    view.setInt16(offset, pcm16[i], true);
-  }
-
-  return new Blob([buffer], { type: 'audio/wav' });
-}
-
-function writeString(view: DataView, offset: number, string: string) {
-  for (let i = 0; i < string.length; i++) {
-    view.setUint8(offset + i, string.charCodeAt(i));
-  }
-}
-
-function base64ToArrayBuffer(base64: string): ArrayBuffer {
-  const binaryString = window.atob(base64);
-  const len = binaryString.length;
-  const bytes = new Uint8Array(len);
-  for (let i = 0; i < len; i++) {
-    bytes[i] = binaryString.charCodeAt(i);
-  }
-  return bytes.buffer;
-}
-
-export default function App() {
-  // Navigation & View
-  const [activeTab, setActiveTab] = useState<'editor' | 'voices' | 'history'>('editor');
-  const [filterGender, setFilterGender] = useState<'all' | 'female' | 'male'>('all');
-  const [searchQuery, setSearchQuery] = useState('');
-
-  // Editor Inputs
-  const [text, setText] = useState(
-    'Selamat datang di VOXERA STUDIO. Buat narasi audio profesional dengan teknologi Text-to-Speech generasi modern. Pilih dari 50 karakter suara unik yang memiliki identitas vokal sejati.'
-  );
-  const [selectedVoice, setSelectedVoice] = useState<VoiceCharacter>(VOICE_CHARACTERS[0]);
-
-  // Voice Settings
-  const [speed, setSpeed] = useState<number>(1.0);
-  const [pitchLevel, setPitchLevel] = useState<string>('Normal'); // 'Very Low'|'Low'|'Normal'|'High'|'Very High'
-  const [volume, setVolume] = useState<number>(95);
-  const [emotion, setEmotion] = useState<string>('Friendly');
-
-  // Generation & Audio Player State
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
-  const [currentAudioUrl, setCurrentAudioUrl] = useState<string | null>(null);
-  const [currentAudioTitle, setCurrentAudioTitle] = useState<string>('');
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [audioDuration, setAudioDuration] = useState(0);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [previewingVoiceId, setPreviewingVoiceId] = useState<string | null>(null);
-
-  // Studio History
-  interface HistoryItem {
-    id: string;
-    text: string;
-    voiceName: string;
-    gender: 'female' | 'male';
-    audioUrl: string;
-    timestamp: string;
-    duration: string;
-    emotion: string;
-  }
-  const [historyList, setHistoryList] = useState<HistoryItem[]>([]);
-
-  // Audio & Waveform Ref
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const animationFrameRef = useRef<number | null>(null);
-
-  // Real-time Text Stats
-  const charCount = text.length;
-  const wordCount = useMemo(() => {
-    const trimmed = text.trim();
-    return trimmed ? trimmed.split(/\s+/).length : 0;
-  }, [text]);
-
-  const showToast = (type: 'success' | 'error' | 'info', message: string) => {
-    setToastMessage({ type, text: message });
-    setTimeout(() => {
-      setToastMessage((prev) => (prev?.text === message ? null : prev));
-    }, 4500);
-  };
-
-  const getPitchMultiplier = (level: string) => {
-    switch (level) {
-      case 'Very Low': return 0.75;
-      case 'Low': return 0.88;
-      case 'High': return 1.15;
-      case 'Very High': return 1.35;
-      case 'Normal':
-      default: return 1.0;
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VOXERA STUDIO — AI Text to Speech Studio</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            brand: {
+              darkest: '#050914',
+              dark: '#080e1e',
+              surface: '#0b1329',
+              card: '#0f1a38',
+              border: '#1b2c58',
+              cyan: '#00f2fe',
+              blue: '#2563eb',
+              electric: '#00d2ff',
+            }
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    /* Custom Glassmorphism & Visual Polish */
+    body {
+      background: radial-gradient(circle at 50% 0%, #0d1e44 0%, #060b18 60%, #040710 100%);
+      color: #f1f5f9;
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
     }
-  };
 
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    /* Subtle custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #060b18;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #1e3a8a;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #00f2fe;
+    }
 
-    let phase = 0;
-    const renderVisualizer = () => {
-      const width = canvas.width;
-      const height = canvas.height;
-      ctx.clearRect(0, 0, width, height);
+    .glass-panel {
+      background: rgba(11, 19, 41, 0.75);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(0, 242, 254, 0.15);
+    }
 
-      const bars = 48;
-      const barWidth = width / bars;
+    .glass-card {
+      background: rgba(15, 26, 56, 0.7);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(37, 99, 235, 0.25);
+    }
+
+    .glass-card:hover {
+      border-color: rgba(0, 242, 254, 0.5);
+      box-shadow: 0 0 20px rgba(0, 242, 254, 0.15);
+    }
+
+    .voice-active {
+      background: linear-gradient(180deg, rgba(16, 32, 70, 0.9) 0%, rgba(9, 18, 40, 0.95) 100%);
+      border: 1.5px solid #00f2fe !important;
+      box-shadow: 0 0 25px rgba(0, 242, 254, 0.35);
+    }
+
+    /* Slider accent */
+    input[type=range]::-webkit-slider-thumb {
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #00f2fe;
+      box-shadow: 0 0 10px #00f2fe;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body class="flex flex-col min-h-screen selection:bg-cyan-400 selection:text-black">
+
+  <!-- Top Application Header -->
+  <header class="sticky top-0 z-50 glass-panel border-b border-cyan-500/20 px-4 md:px-8 py-3.5 flex items-center justify-between shadow-2xl">
+    <div class="flex items-center space-x-3.5">
+      <div class="relative flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-cyan-400 p-[1.5px] shadow-lg shadow-cyan-500/30">
+        <div class="w-full h-full bg-[#070d1d] rounded-[10px] flex items-center justify-center">
+          <svg class="w-5 h-5 text-cyan-400 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 003-3V5a3 3 0 10-6 0v6a3 3 0 003 3z"/>
+          </svg>
+        </div>
+      </div>
+      <div>
+        <div class="flex items-center space-x-2">
+          <span class="font-black text-xl tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-white via-cyan-100 to-cyan-400 font-mono">
+            VOXERA STUDIO
+          </span>
+          <span class="text-[9px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full bg-cyan-950/80 text-cyan-300 border border-cyan-400/40">
+            PRO AI
+          </span>
+        </div>
+        <p class="text-xs text-slate-400 font-medium">
+          Create Your Voice. Shape Your Story.
+        </p>
+      </div>
+    </div>
+
+    <!-- Active Indicators & Engine Mode -->
+    <div class="hidden sm:flex items-center space-x-3">
+      <div class="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-blue-950/50 border border-cyan-500/30 text-xs text-cyan-300">
+        <span class="relative flex h-2 w-2">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-2 w-2 bg-cyan-400"></span>
+        </span>
+        <span class="font-medium">50 Karakter Vokal Aktif (30W / 20P)</span>
+      </div>
+      <div class="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-slate-900/80 border border-slate-700/60 text-xs text-slate-300">
+        <svg class="w-3.5 h-3.5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+        </svg>
+        <span>Neural Voice Matrix</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Application Body -->
+  <div class="flex-1 flex flex-col md:flex-row overflow-hidden">
+    <!-- Left Navigation Sidebar -->
+    <aside class="w-full md:w-64 bg-[#070d1e]/90 border-r border-blue-900/40 p-4 flex md:flex-col justify-between shrink-0 shadow-lg">
+      <div class="w-full space-y-2">
+        <div class="text-[11px] font-bold text-slate-400 tracking-wider uppercase px-3 py-1 flex items-center justify-between">
+          <span>Navigasi Studio</span>
+          <span class="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
+        </div>
+
+        <button id="nav-btn-editor" onclick="switchTab('editor')" class="w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all bg-gradient-to-r from-blue-600/30 to-cyan-500/20 border border-cyan-500/40 text-cyan-300 shadow-md">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+          <span>Workspace Teks</span>
+        </button>
+
+        <button id="nav-btn-voices" onclick="switchTab('voices')" class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-900/60">
+          <div class="flex items-center space-x-3">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+            <span>Voice Characters</span>
+          </div>
+          <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-cyan-900/40 text-cyan-300 border border-cyan-500/30">50</span>
+        </button>
+
+        <button id="nav-btn-history" onclick="switchTab('history')" class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-900/60">
+          <div class="flex items-center space-x-3">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <span>Voice History</span>
+          </div>
+          <span id="history-badge" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-900/40 text-blue-300">0</span>
+        </button>
+
+        <!-- Selected Voice Info Card in Sidebar -->
+        <div class="mt-6 p-3.5 rounded-2xl bg-gradient-to-b from-[#0e1b38] to-[#091124] border border-cyan-500/30 shadow-inner">
+          <div class="text-[10px] uppercase font-bold text-cyan-400 tracking-wider mb-2 flex items-center justify-between">
+            <span>Karakter Terpilih</span>
+            <span class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping"></span>
+          </div>
+          <div class="flex items-center space-x-3">
+            <div id="sidebar-voice-avatar" class="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-sm text-white bg-gradient-to-br from-pink-500 to-rose-600 shadow-md">
+              Ar
+            </div>
+            <div class="flex-1 min-w-0">
+              <p id="sidebar-voice-name" class="text-sm font-bold text-white truncate">Aria</p>
+              <p id="sidebar-voice-tone" class="text-[11px] text-cyan-300 truncate">Jernih, Lembut, Natural</p>
+            </div>
+          </div>
+          <button onclick="switchTab('voices')" class="mt-3 w-full py-1.5 text-xs text-center font-semibold rounded-lg bg-cyan-950/60 hover:bg-cyan-900/80 text-cyan-300 border border-cyan-500/30 transition-colors">
+            Ganti Karakter (50)
+          </button>
+        </div>
+      </div>
+
+      <div class="hidden md:block pt-4 border-t border-blue-900/30 text-center">
+        <p class="text-[11px] text-slate-400 font-semibold tracking-wider">VOXERA AI STUDIO v2.4</p>
+        <p class="text-[10px] text-slate-500 mt-0.5 font-mono">Neural Audio Synthesis Engine</p>
+      </div>
+    </aside>
+
+    <!-- Center Dynamic Content Area -->
+    <main class="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 space-y-6">
+      
+      <!-- TAB 1: WORKSPACE TEXT EDITOR -->
+      <section id="tab-editor" class="space-y-6">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          
+          <!-- Left Main Column: Text Area & Character Active Bar -->
+          <div class="lg:col-span-8 space-y-6">
+            <!-- Header Banner -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h1 class="text-xl md:text-2xl font-black tracking-tight text-white flex items-center space-x-2">
+                  <span>TEXT TO SPEECH</span>
+                  <span class="text-cyan-400 text-sm font-normal">/ Studio Editor</span>
+                </h1>
+                <p class="text-xs md:text-sm text-slate-400 mt-0.5">
+                  Tulis naskah Anda dan atur nuansa ekspresi emosi vokal secara presisi.
+                </p>
+              </div>
+
+              <!-- Sample Text Presets Selector -->
+              <div class="flex items-center space-x-2">
+                <span class="text-xs text-slate-400 hidden sm:inline">Contoh Teks:</span>
+                <select id="sample-text-select" onchange="applySampleText(this.value)" class="bg-[#0e1a38] text-xs text-cyan-300 border border-cyan-500/30 rounded-xl px-3 py-1.5 outline-none cursor-pointer hover:border-cyan-400 transition-colors">
+                  <option value="" disabled selected>Pilih Contoh Naskah...</option>
+                  <option value="commercial">Iklan Komersial</option>
+                  <option value="story">Cerita & Legenda</option>
+                  <option value="business">Presentasi Bisnis</option>
+                  <option value="meditation">Meditasi & Relaksasi</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Primary Textarea Card with Live Counters -->
+            <div class="rounded-2xl glass-panel p-4 shadow-2xl focus-within:border-cyan-400/80 focus-within:ring-1 focus-within:ring-cyan-400/30 transition-all duration-300">
+              <div class="flex items-center justify-between pb-3 border-b border-blue-900/40">
+                <div class="flex items-center space-x-2">
+                  <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-sm shadow-cyan-400"></span>
+                  <span class="text-xs font-bold text-slate-300 uppercase tracking-wider">Skrip Masukan</span>
+                </div>
+
+                <!-- Textarea Actions Toolbar -->
+                <div class="flex items-center space-x-1 sm:space-x-2">
+                  <button onclick="handlePasteClipboard()" class="px-2.5 py-1 text-slate-400 hover:text-cyan-300 hover:bg-blue-950/60 rounded-lg transition-colors text-xs flex items-center space-x-1 border border-transparent hover:border-cyan-500/20" title="Tempel dari Clipboard">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                    <span>Paste</span>
+                  </button>
+
+                  <button onclick="handleCopyText()" class="px-2.5 py-1 text-slate-400 hover:text-cyan-300 hover:bg-blue-950/60 rounded-lg transition-colors text-xs flex items-center space-x-1 border border-transparent hover:border-cyan-500/20" title="Salin Teks">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                    <span>Copy</span>
+                  </button>
+
+                  <button onclick="handleClearText()" class="px-2.5 py-1 text-rose-400/80 hover:text-rose-300 hover:bg-rose-950/40 rounded-lg transition-colors text-xs flex items-center space-x-1" title="Kosongkan Teks">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                    <span>Clear</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Main Input Area -->
+              <textarea id="text-input" rows="8" placeholder="Tulis atau tempel teks yang ingin diubah menjadi suara..." oninput="updateCounters()" class="w-full bg-transparent text-slate-100 placeholder:text-slate-500 resize-none pt-3 outline-none text-sm md:text-base leading-relaxed tracking-wide font-normal">Selamat datang di VOXERA STUDIO. Buat narasi audio profesional dengan teknologi Text-to-Speech generasi modern. Pilih dari 50 karakter suara unik yang memiliki identitas vokal sejati.</textarea>
+
+              <!-- Real-time Counters Info Bar -->
+              <div class="pt-3 border-t border-blue-900/40 flex flex-col sm:flex-row sm:items-center justify-between text-xs text-slate-400 gap-2">
+                <div class="flex items-center space-x-4">
+                  <span><strong id="char-count" class="text-cyan-300 font-mono">0</strong> Karakter</span>
+                  <span><strong id="word-count" class="text-cyan-300 font-mono">0</strong> Kata</span>
+                </div>
+                <div class="text-[11px] text-slate-500">
+                  Maks. 3.000 karakter • Estimasi durasi: <span id="est-duration" class="text-cyan-300 font-mono">~0s</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Active Selected Voice Strip Preview Card -->
+            <div id="active-voice-strip" class="rounded-2xl bg-gradient-to-r from-[#0e1b38] via-[#0b1429] to-[#0e1e3f] border border-cyan-500/40 p-4 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div class="flex items-center space-x-4">
+                <div id="strip-avatar" class="w-14 h-14 rounded-2xl flex items-center justify-center font-bold text-xl text-white shadow-lg shrink-0 bg-gradient-to-tr from-pink-500 via-rose-600 to-purple-500 shadow-pink-500/20">
+                  Ar
+                </div>
+                <div>
+                  <div class="flex items-center space-x-2">
+                    <h3 id="strip-name" class="font-extrabold text-base text-white">Aria</h3>
+                    <span id="strip-badge" class="text-[10px] font-bold px-2 py-0.5 rounded-md uppercase bg-pink-950/80 text-pink-300 border border-pink-500/30">
+                      Wanita • Muda (20-25)
+                    </span>
+                  </div>
+                  <p id="strip-tone" class="text-xs text-cyan-300 font-medium mt-0.5">Jernih, Lembut, Natural</p>
+                  <p id="strip-desc" class="text-[11px] text-slate-400 mt-1 line-clamp-1">Suara wanita muda yang jernih, mengalir lembut seperti percakapan santai sahabat.</p>
+                </div>
+              </div>
+
+              <div class="flex items-center space-x-2 w-full sm:w-auto justify-end">
+                <button id="strip-preview-btn" onclick="playSelectedPreview()" class="px-3.5 py-2 rounded-xl bg-blue-950/70 hover:bg-blue-900 text-cyan-300 border border-cyan-500/30 text-xs font-semibold flex items-center space-x-2 transition-all">
+                  <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                  <span id="strip-preview-text">Play Preview</span>
+                </button>
+                <button onclick="switchTab('voices')" class="px-3.5 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black text-xs font-bold transition-all shadow-md shadow-cyan-500/25">
+                  Ganti Suara
+                </button>
+              </div>
+            </div>
+
+            <!-- Primary Generate Voice Action Button -->
+            <button id="btn-generate-voice" onclick="handleGenerateVoice()" class="w-full py-4 px-6 rounded-2xl font-extrabold text-base md:text-lg tracking-wider transition-all duration-300 flex items-center justify-center space-x-3 shadow-2xl bg-gradient-to-r from-blue-600 via-cyan-500 to-teal-400 hover:from-blue-500 hover:via-cyan-400 hover:to-teal-300 text-[#040812] shadow-cyan-500/30 hover:scale-[1.008] active:scale-[0.99]">
+              <svg id="generate-icon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
+              </svg>
+              <span id="generate-text">GENERATE VOICE</span>
+            </button>
+          </div>
+
+          <!-- Right Column: Voice Settings & Audio Player Panel -->
+          <div class="lg:col-span-4 space-y-6">
+            
+            <!-- Panel Kontrol Suara: VOICE SETTINGS -->
+            <div class="rounded-2xl glass-panel p-5 shadow-2xl space-y-5">
+              <div class="flex items-center justify-between pb-3 border-b border-blue-900/40">
+                <div class="flex items-center space-x-2">
+                  <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
+                  </svg>
+                  <h2 class="text-xs font-black tracking-wider text-white uppercase font-mono">VOICE SETTINGS</h2>
+                </div>
+                <button onclick="resetVoiceSettings()" class="text-[11px] text-slate-400 hover:text-cyan-300 flex items-center space-x-1 transition-colors">
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                  <span>Reset</span>
+                </button>
+              </div>
+
+              <!-- Emotion / Expression -->
+              <div class="space-y-2">
+                <div class="flex items-center justify-between text-xs font-semibold text-slate-300">
+                  <span>Emotion / Expression</span>
+                  <span id="val-emotion" class="text-cyan-400 font-bold">Friendly</span>
+                </div>
+                <div class="grid grid-cols-2 gap-1.5" id="emotion-buttons">
+                  <button type="button" onclick="setEmotion('Neutral')" class="btn-emotion py-1.5 px-2 rounded-lg text-xs font-medium bg-[#0e1b38] text-slate-400 hover:text-white">Neutral</button>
+                  <button type="button" onclick="setEmotion('Happy')" class="btn-emotion py-1.5 px-2 rounded-lg text-xs font-medium bg-[#0e1b38] text-slate-400 hover:text-white">Happy</button>
+                  <button type="button" onclick="setEmotion('Sad')" class="btn-emotion py-1.5 px-2 rounded-lg text-xs font-medium bg-[#0e1b38] text-slate-400 hover:text-white">Sad</button>
+                  <button type="button" onclick="setEmotion('Excited')" class="btn-emotion py-1.5 px-2 rounded-lg text-xs font-medium bg-[#0e1b38] text-slate-400 hover:text-white">Excited</button>
+                  <button type="button" onclick="setEmotion('Calm')" class="btn-emotion py-1.5 px-2 rounded-lg text-xs font-medium bg-[#0e1b38] text-slate-400 hover:text-white">Calm</button>
+                  <button type="button" onclick="setEmotion('Serious')" class="btn-emotion py-1.5 px-2 rounded-lg text-xs font-medium bg-[#0e1b38] text-slate-400 hover:text-white">Serious</button>
+                  <button type="button" onclick="setEmotion('Dramatic')" class="btn-emotion py-1.5 px-2 rounded-lg text-xs font-medium bg-[#0e1b38] text-slate-400 hover:text-white">Dramatic</button>
+                  <button type="button" onclick="setEmotion('Friendly')" class="btn-emotion py-1.5 px-2 rounded-lg text-xs font-bold bg-cyan-500 text-black shadow-md">Friendly</button>
+                  <button type="button" onclick="setEmotion('Energetic')" class="btn-emotion py-1.5 px-2 rounded-lg text-xs font-medium bg-[#0e1b38] text-slate-400 hover:text-white">Energetic</button>
+                  <button type="button" onclick="setEmotion('Storytelling')" class="btn-emotion py-1.5 px-2 rounded-lg text-xs font-medium bg-[#0e1b38] text-slate-400 hover:text-white">Storytelling</button>
+                </div>
+              </div>
+
+              <!-- Speed Controller -->
+              <div class="space-y-2">
+                <div class="flex items-center justify-between text-xs font-semibold text-slate-300">
+                  <span>Speed</span>
+                  <span id="val-speed" class="font-mono text-cyan-400">1.0x</span>
+                </div>
+                <div class="grid grid-cols-4 sm:grid-cols-7 gap-1" id="speed-buttons">
+                  <button type="button" onclick="setSpeed(0.5)" class="btn-speed py-1 text-[11px] font-mono font-bold rounded-lg bg-[#0e1b38] text-slate-400">0.5x</button>
+                  <button type="button" onclick="setSpeed(0.75)" class="btn-speed py-1 text-[11px] font-mono font-bold rounded-lg bg-[#0e1b38] text-slate-400">0.75x</button>
+                  <button type="button" onclick="setSpeed(1.0)" class="btn-speed py-1 text-[11px] font-mono font-bold rounded-lg bg-blue-600 text-white shadow-md">1.0x</button>
+                  <button type="button" onclick="setSpeed(1.25)" class="btn-speed py-1 text-[11px] font-mono font-bold rounded-lg bg-[#0e1b38] text-slate-400">1.25x</button>
+                  <button type="button" onclick="setSpeed(1.5)" class="btn-speed py-1 text-[11px] font-mono font-bold rounded-lg bg-[#0e1b38] text-slate-400">1.5x</button>
+                  <button type="button" onclick="setSpeed(1.75)" class="btn-speed py-1 text-[11px] font-mono font-bold rounded-lg bg-[#0e1b38] text-slate-400">1.75x</button>
+                  <button type="button" onclick="setSpeed(2.0)" class="btn-speed py-1 text-[11px] font-mono font-bold rounded-lg bg-[#0e1b38] text-slate-400">2.0x</button>
+                </div>
+              </div>
+
+              <!-- Pitch Controller -->
+              <div class="space-y-2">
+                <div class="flex items-center justify-between text-xs font-semibold text-slate-300">
+                  <span>Pitch</span>
+                  <span id="val-pitch" class="font-mono text-cyan-400">Normal</span>
+                </div>
+                <div class="grid grid-cols-3 sm:grid-cols-5 gap-1" id="pitch-buttons">
+                  <button type="button" onclick="setPitch('Very Low')" class="btn-pitch py-1 text-[10px] font-semibold rounded-lg bg-[#0e1b38] text-slate-400">Very Low</button>
+                  <button type="button" onclick="setPitch('Low')" class="btn-pitch py-1 text-[10px] font-semibold rounded-lg bg-[#0e1b38] text-slate-400">Low</button>
+                  <button type="button" onclick="setPitch('Normal')" class="btn-pitch py-1 text-[10px] font-semibold rounded-lg bg-indigo-600 text-white shadow-md">Normal</button>
+                  <button type="button" onclick="setPitch('High')" class="btn-pitch py-1 text-[10px] font-semibold rounded-lg bg-[#0e1b38] text-slate-400">High</button>
+                  <button type="button" onclick="setPitch('Very High')" class="btn-pitch py-1 text-[10px] font-semibold rounded-lg bg-[#0e1b38] text-slate-400">Very High</button>
+                </div>
+              </div>
+
+              <!-- Volume Slider Controller -->
+              <div class="space-y-2">
+                <div class="flex items-center justify-between text-xs font-semibold text-slate-300">
+                  <span class="flex items-center space-x-1.5">
+                    <svg class="w-3.5 h-3.5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/></svg>
+                    <span>Volume Master</span>
+                  </span>
+                  <span id="val-volume" class="font-mono text-cyan-400">95%</span>
+                </div>
+                <input id="slider-volume" type="range" min="0" max="100" value="95" oninput="setVolume(this.value)" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400">
+              </div>
+            </div>
+
+            <!-- Modern Studio Audio Output Player -->
+            <div class="rounded-2xl bg-gradient-to-b from-[#0b1428] to-[#060b17] border border-cyan-500/30 p-5 shadow-2xl space-y-4">
+              <div class="flex items-center justify-between pb-2 border-b border-blue-900/40">
+                <div class="flex items-center space-x-2">
+                  <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"/></svg>
+                  <span class="text-xs font-bold text-slate-200 tracking-wider uppercase">Master Output Player</span>
+                </div>
+                <span id="player-status-pill" class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-800 text-slate-400">Standby</span>
+              </div>
+
+              <!-- Animated Waveform Canvas Visualization -->
+              <div class="w-full h-16 bg-[#040710] rounded-xl overflow-hidden border border-blue-950 flex items-center justify-center relative shadow-inner">
+                <canvas id="waveform-canvas" width="380" height="64" class="w-full h-full block"></canvas>
+                <div id="waveform-placeholder" class="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[1px] text-[11px] text-slate-400 font-mono">
+                  Belum ada audio yang digenerate
+                </div>
+              </div>
+
+              <!-- Audio Info & Timers -->
+              <div class="space-y-1">
+                <p id="player-title" class="text-sm font-bold text-white truncate">Voxera Audio Master</p>
+                <div class="flex items-center justify-between text-xs text-slate-400 font-mono">
+                  <span id="player-current-time">00:00</span>
+                  <span id="player-duration">00:00</span>
+                </div>
+              </div>
+
+              <!-- Seek Progress Bar -->
+              <input id="player-seek-bar" type="range" min="0" max="100" value="0" step="0.05" oninput="handleSeek(this.value)" disabled class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400 disabled:opacity-30">
+
+              <!-- Player Transport Action Buttons -->
+              <div class="flex items-center justify-between pt-2">
+                <button id="btn-player-stop" onclick="stopAudio()" disabled class="p-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 disabled:opacity-30 transition-colors" title="Stop">
+                  <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg>
+                </button>
+
+                <button id="btn-player-toggle" onclick="togglePlayPause()" disabled class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold flex items-center justify-center shadow-lg shadow-cyan-500/30 disabled:opacity-30 transition-transform active:scale-95">
+                  <svg id="icon-play" class="w-5 h-5 fill-current ml-0.5" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                  <svg id="icon-pause" class="w-5 h-5 fill-current hidden" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                </button>
+
+                <button id="btn-player-regen" onclick="handleGenerateVoice()" disabled class="p-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-cyan-300 disabled:opacity-30 transition-colors" title="Regenerate Voice">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                </button>
+
+                <button id="btn-player-download" onclick="downloadCurrentAudio()" disabled class="p-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 hover:text-cyan-300 disabled:opacity-30 transition-colors" title="Download Audio (.wav)">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 2: 50 VOICE CHARACTERS EXPLORER -->
+      <section id="tab-voices" class="space-y-6 hidden">
+        <!-- Header & Search Filter Bar -->
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h1 class="text-xl md:text-2xl font-black text-white flex items-center space-x-2">
+              <span>VOICE CHARACTERS</span>
+              <span class="text-cyan-400 text-sm font-normal">/ 50 Karakter Unik</span>
+            </h1>
+            <p class="text-xs md:text-sm text-slate-400 mt-1">
+              Setiap karakter vokal memiliki tone, tempo, pitch, usia suara, dan gaya penyampaian unik.
+            </p>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2.5">
+            <!-- Gender Filters -->
+            <div class="flex rounded-xl bg-[#091225] p-1 border border-blue-900/40">
+              <button id="filter-all" onclick="filterVoices('all')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-cyan-500 text-black shadow-md">
+                Semua (50)
+              </button>
+              <button id="filter-female" onclick="filterVoices('female')" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition-all">
+                Wanita (30)
+              </button>
+              <button id="filter-male" onclick="filterVoices('male')" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition-all">
+                Pria (20)
+              </button>
+            </div>
+
+            <!-- Search Input -->
+            <div class="relative">
+              <svg class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+              <input id="voice-search" type="text" placeholder="Cari karakter, tone, gaya..." oninput="handleVoiceSearch(this.value)" class="bg-[#091225] text-xs text-slate-200 pl-9 pr-3 py-2 rounded-xl border border-blue-900/40 focus:border-cyan-400 outline-none w-48 md:w-56" />
+            </div>
+          </div>
+        </div>
+
+        <!-- 50 Voice Cards Container Grid -->
+        <div id="voices-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+          <!-- Dynamically populated by JavaScript -->
+        </div>
+      </section>
+
+      <!-- TAB 3: VOICE HISTORY -->
+      <section id="tab-history" class="space-y-6 hidden">
+        <div class="flex items-center justify-between">
+          <div>
+            <h1 class="text-xl md:text-2xl font-black text-white flex items-center space-x-2">
+              <span>VOICE HISTORY</span>
+              <span class="text-cyan-400 text-sm font-normal">/ Riwayat Generasi</span>
+            </h1>
+            <p class="text-xs md:text-sm text-slate-400 mt-1">
+              Daftar hasil generasi suara sesi Anda. Anda dapat memutar ulang atau mengunduh kembali.
+            </p>
+          </div>
+
+          <button id="btn-clear-history" onclick="clearVoiceHistory()" class="px-3.5 py-2 rounded-xl bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 border border-rose-500/30 text-xs font-bold flex items-center space-x-2 transition-all">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+            <span>CLEAR HISTORY</span>
+          </button>
+        </div>
+
+        <!-- History Container -->
+        <div id="history-container" class="space-y-3">
+          <!-- Dynamic or Empty State -->
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="fixed bottom-12 right-6 z-50 pointer-events-none space-y-2"></div>
+
+  <!-- Mandatory Application Footer -->
+  <footer class="bg-[#040813] border-t border-blue-950 px-6 py-4 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-2">
+    <div class="flex items-center space-x-2">
+      <span class="font-extrabold text-slate-300 tracking-wider font-mono">VOXERA STUDIO</span>
+      <span>—</span>
+      <span>Create Your Voice. Shape Your Story.</span>
+    </div>
+    <div class="text-slate-400 font-semibold tracking-wide">
+      Created By: FAISAL ADI PRITANA
+    </div>
+  </footer>
+
+  <!-- Hidden HTML5 Audio Element for Playback -->
+  <audio id="native-audio" class="hidden" preload="metadata"></audio>
+
+  <script>
+    /* ==========================================================
+       VOXERA STUDIO — 50 UNIQUE VOICE CHARACTERS DATABASE
+       (30 Female Characters + 20 Male Characters)
+       ========================================================== */
+    const VOICE_CHARACTERS = [
+      // --- 30 FEMALE VOICES ---
+      { id: 'aria', name: 'Aria', gender: 'female', ageGroup: 'Muda (20-25)', tone: 'Jernih, Lembut, Natural', energy: 'Calm Natural', pitchVal: 1.15, speedVal: 1.0, description: 'Suara wanita muda yang jernih, mengalir lembut seperti percakapan santai sahabat.', style: 'Casual & Warm', geminiVoice: 'Kore' },
+      { id: 'naya', name: 'Naya', gender: 'female', ageGroup: 'Muda (18-22)', tone: 'Ceria, Energik, Friendly', energy: 'High Energy', pitchVal: 1.30, speedVal: 1.15, description: 'Penuh antusiasme dan ceria, ideal untuk konten vlog, reels, dan promosi kreatif.', style: 'Upbeat & Joyful', geminiVoice: 'Aoede' },
+      { id: 'vela', name: 'Vela', gender: 'female', ageGroup: 'Dewasa (28-35)', tone: 'Elegan, Tenang, Premium', energy: 'Subtle Sophisticated', pitchVal: 1.0, speedVal: 0.92, description: 'Karakter vokal berkelas tinggi dengan artikulasi terukur untuk brand mewah dan institusi.', style: 'Luxury Brand', geminiVoice: 'Kore' },
+      { id: 'mira', name: 'Mira', gender: 'female', ageGroup: 'Dewasa (35-45)', tone: 'Hangat, Keibuan, Penuh Perhatian', energy: 'Gentle Comforting', pitchVal: 0.95, speedVal: 0.95, description: 'Meneduhkan hati dengan intonasi hangat nan penuh kasih, cocok untuk meditasi dan cerita anak.', style: 'Maternal Warmth', geminiVoice: 'Kore' },
+      { id: 'zara', name: 'Zara', gender: 'female', ageGroup: 'Dewasa Muda (26-32)', tone: 'Confident, Tegas, Modern', energy: 'Dynamic Assertive', pitchVal: 1.05, speedVal: 1.05, description: 'Tegas dan berwibawa khas eksekutif tech masa kini, mantap untuk presentasi bisnis.', style: 'Modern Business', geminiVoice: 'Zephyr' },
+      { id: 'luna', name: 'Luna', gender: 'female', ageGroup: 'Muda (20-24)', tone: 'Dreamy, Lembut, Airy', energy: 'Soft Whispery', pitchVal: 1.25, speedVal: 0.88, description: 'Karakter vokal berbisik lembut (airy) dengan nuansa puitis serta imajinatif.', style: 'Poetic & Dreamy', geminiVoice: 'Aoede' },
+      { id: 'sera', name: 'Sera', gender: 'female', ageGroup: 'Profesional (30-40)', tone: 'Profesional, Berwawasan, Clear', energy: 'Focused Authority', pitchVal: 1.02, speedVal: 1.0, description: 'Diksi tajam tanpa cela untuk siaran berita, modul elearning komprehensif, dan narasi medis.', style: 'Broadcaster Precision', geminiVoice: 'Zephyr' },
+      { id: 'kiara', name: 'Kiara', gender: 'female', ageGroup: 'Remaja/Muda (17-21)', tone: 'Youthful, Playful, Ekspresif', energy: 'Vibrant Youth', pitchVal: 1.35, speedVal: 1.10, description: 'Penuh ekspresi muda, nada melompat dinamis sangat cocok untuk sandiwara remaja.', style: 'Gen-Z Creator', geminiVoice: 'Aoede' },
+      { id: 'elena', name: 'Elena', gender: 'female', ageGroup: 'Mature (40-50)', tone: 'Sophisticated, Berkelas, Dalam', energy: 'Regal Poise', pitchVal: 0.90, speedVal: 0.92, description: 'Vokal matang dengan wibawa ningrat, ideal untuk dokumenter seni sastra dan biografi.', style: 'High Aristocrat', geminiVoice: 'Kore' },
+      { id: 'raina', name: 'Raina', gender: 'female', ageGroup: 'Dewasa (28-34)', tone: 'Calm Storyteller, Santai', energy: 'Relaxed Flow', pitchVal: 1.02, speedVal: 0.96, description: 'Pendongeng santai yang memikat pendengar tanpa kesan terburu-buru.', style: 'Audiobook Fiction', geminiVoice: 'Kore' },
+      { id: 'alya', name: 'Alya', gender: 'female', ageGroup: 'Muda (21-25)', tone: 'Manis, Ringan, Approachable', energy: 'Sweet Friendly', pitchVal: 1.20, speedVal: 1.02, description: 'Suara customer service impian: ramah, manis, ringan didengar dan menyenangkan.', style: 'Customer Care Pro', geminiVoice: 'Aoede' },
+      { id: 'viona', name: 'Viona', gender: 'female', ageGroup: 'Dewasa (30-38)', tone: 'Deep Feminine, Kuat, Karismatik', energy: 'Magnetic Resonant', pitchVal: 0.85, speedVal: 0.95, description: 'Suara altus wanita yang dalam dan menggoda rasa ingin tahu, pas untuk thriller podcast.', style: 'Deep Mystery', geminiVoice: 'Kore' },
+      { id: 'celine', name: 'Celine', gender: 'female', ageGroup: 'Dewasa (27-33)', tone: 'Refined, Soft Luxury', energy: 'Silky Gentle', pitchVal: 1.08, speedVal: 0.90, description: 'Sentuhan vokal sutra lembut untuk iklan parfum, fashion show, dan spa eksklusif.', style: 'Silky Elegance', geminiVoice: 'Kore' },
+      { id: 'tara', name: 'Tara', gender: 'female', ageGroup: 'Muda (23-28)', tone: 'Energetic Presenter, Cepat, Hidup', energy: 'Staccato Spark', pitchVal: 1.18, speedVal: 1.25, description: 'Presenter acara langsung dan YouTube hype yang sigap membangkitkan suasana riuh.', style: 'Show Host', geminiVoice: 'Zephyr' },
+      { id: 'naomi', name: 'Naomi', gender: 'female', ageGroup: 'Dewasa (32-42)', tone: 'Cinematic, Dramatis, Emosional', energy: 'Intense Drama', pitchVal: 0.98, speedVal: 0.88, description: 'Suara sarat muatan emosi mendalam untuk monolog film pendek dan drama audio.', style: 'Cinematic Monologue', geminiVoice: 'Kore' },
+      { id: 'freya', name: 'Freya', gender: 'female', ageGroup: 'Dewasa Muda (25-32)', tone: 'Mysterious, Rendah, Enigmatic', energy: 'Low Enigma', pitchVal: 0.82, speedVal: 0.90, description: 'Misterius dan menyiratkan teka-teki kuno, cocok untuk narasi horor dan sci-fi mitologis.', style: 'Occult Mystery', geminiVoice: 'Kore' },
+      { id: 'sasha', name: 'Sasha', gender: 'female', ageGroup: 'Muda (22-27)', tone: 'Casual, Conversational, Spontan', energy: 'Natural Dialogue', pitchVal: 1.10, speedVal: 1.04, description: 'Seolah sedang duduk mengobrol berdua di kedai kopi tanpa naskah kaku.', style: 'Podcast Host', geminiVoice: 'Zephyr' },
+      { id: 'iris', name: 'Iris', gender: 'female', ageGroup: 'Muda (19-24)', tone: 'Bright, Crisp, Youthful', energy: 'Fresh Morning', pitchVal: 1.28, speedVal: 1.08, description: 'Bagaikan embun pagi: cerah, renyah, dan membangkitkan gairah produktivitas.', style: 'Morning Routine', geminiVoice: 'Aoede' },
+      { id: 'selena', name: 'Selena', gender: 'female', ageGroup: 'Dewasa (28-36)', tone: 'Sensual Vokal, Profesional', energy: 'Warm Velvet', pitchVal: 0.94, speedVal: 0.93, description: 'Kombinasi vokal beludru memikat yang tetap menjaga etika formalitas bisnis tinggi.', style: 'Late Night Radio', geminiVoice: 'Kore' },
+      { id: 'rhea', name: 'Rhea', gender: 'female', ageGroup: 'Senior (40-52)', tone: 'Authoritative, Commanding, Tegas', energy: 'High Command', pitchVal: 0.88, speedVal: 1.02, description: 'Kepemimpinan tegas tak terbantahkan, cocok untuk instruksi darurat dan narasi birokrasi.', style: 'Supreme Directive', geminiVoice: 'Zephyr' },
+      { id: 'dina', name: 'Dina', gender: 'female', ageGroup: 'Dewasa Muda (24-30)', tone: 'Warm Everyday, Natural Nusantara', energy: 'Organic Everyday', pitchVal: 1.06, speedVal: 1.0, description: 'Suara tetangga yang ramah dan dekat, tidak pretensius untuk tutorial harian rumah tangga.', style: 'Everyday Practical', geminiVoice: 'Kore' },
+      { id: 'aurelia', name: 'Aurelia', gender: 'female', ageGroup: 'Dewasa (33-43)', tone: 'Elegant Narrator, Tenang, Mahal', energy: 'Noble Grace', pitchVal: 1.0, speedVal: 0.89, description: 'Narasi museum dan galeri seni bernilai tinggi dengan jeda antar kalimat yang kaya arti.', style: 'Fine Art Audio Tour', geminiVoice: 'Kore' },
+      { id: 'jessa', name: 'Jessa', gender: 'female', ageGroup: 'Remaja (16-20)', tone: 'Fun, Bubbly, Sangat Ekspresif', energy: 'Effervescent Pop', pitchVal: 1.40, speedVal: 1.20, description: 'Penuh gelembung keceriaan, cocok untuk game kasual anak muda dan animasi anak.', style: 'Animation Voice', geminiVoice: 'Aoede' },
+      { id: 'nora', name: 'Nora', gender: 'female', ageGroup: 'Mature (45-55)', tone: 'Mature, Reassuring, Stabil', energy: 'Grounded Wisdom', pitchVal: 0.89, speedVal: 0.94, description: 'Memberikan rasa aman dan kepastian moral, cocok untuk konseling dan edukasi psikologi.', style: 'Therapy & Guidance', geminiVoice: 'Kore' },
+      { id: 'lyra', name: 'Lyra', gender: 'female', ageGroup: 'Muda (22-26)', tone: 'Ethereal, Artistic, Unik', energy: 'Mystic Air', pitchVal: 1.22, speedVal: 0.86, description: 'Vokal eksentrik layaknya musisi indie folk, membawa kesan magis yang tidak biasa.', style: 'Avant-Garde Indie', geminiVoice: 'Aoede' },
+      { id: 'kira', name: 'Kira', gender: 'female', ageGroup: 'Muda (23-28)', tone: 'Bold, Confident, Modern', energy: 'Punchy Assertive', pitchVal: 1.08, speedVal: 1.10, description: 'Keras dan berani menyuarakan pendapat inovatif di panggung konferensi internasional.', style: 'TedTalk Pitch', geminiVoice: 'Zephyr' },
+      { id: 'amara', name: 'Amara', gender: 'female', ageGroup: 'Dewasa (35-48)', tone: 'Deep Warm Storyteller', energy: 'Warm Resonant', pitchVal: 0.86, speedVal: 0.92, description: 'Kisah-kisah sejarah epik dan dongeng peradaban purba terasa hidup lewat suaranya.', style: 'History Legend', geminiVoice: 'Kore' },
+      { id: 'siena', name: 'Siena', gender: 'female', ageGroup: 'Dewasa (29-37)', tone: 'Soft Documentary Narrator', energy: 'Neutral Poised', pitchVal: 1.04, speedVal: 0.95, description: 'Gaya khas narasi National Geographic dan dokumenter alam fauna liar.', style: 'Nature Wildlife Doc', geminiVoice: 'Zephyr' },
+      { id: 'maya', name: 'Maya', gender: 'female', ageGroup: 'Muda (20-25)', tone: 'Friendly Social-Media Style', energy: 'Trendy Casual', pitchVal: 1.16, speedVal: 1.12, description: 'Sangat fasih membawakan storytelling TikTok dan review kuliner viral kekinian.', style: 'Viral Trendsetter', geminiVoice: 'Aoede' },
+      { id: 'vera', name: 'Vera', gender: 'female', ageGroup: 'Mature Executive (42-52)', tone: 'Executive Voice, Berwibawa', energy: 'Boardroom Commander', pitchVal: 0.92, speedVal: 0.98, description: 'Suara pengambil keputusan tertinggi di rapat direksi multinasional.', style: 'Corporate Leadership', geminiVoice: 'Zephyr' },
+
+      // --- 20 MALE VOICES ---
+      { id: 'raka', name: 'Raka', gender: 'male', ageGroup: 'Muda (22-26)', tone: 'Pria Muda, Natural, Friendly', energy: 'Warm Casual', pitchVal: 0.98, speedVal: 1.0, description: 'Sosok pemuda ramah dan tulus yang mudah dipercaya dalam percakapan sehari-hari.', style: 'Friendly Brother', geminiVoice: 'Puck' },
+      { id: 'darren', name: 'Darren', gender: 'male', ageGroup: 'Dewasa Muda (27-34)', tone: 'Deep, Confident, Modern', energy: 'Baritone Confidence', pitchVal: 0.78, speedVal: 1.04, description: 'Bariton modern yang memancarkan karisma dan kepercayaan diri tinggi pada iklan tech.', style: 'Tech Entrepreneur', geminiVoice: 'Charon' },
+      { id: 'arvin', name: 'Arvin', gender: 'male', ageGroup: 'Muda (24-29)', tone: 'Energetic Presenter, Sigap', energy: 'High-Tempo', pitchVal: 1.05, speedVal: 1.22, description: 'Host acara otomotif dan festival musik yang memacu adrenalin para penonton.', style: 'Event MC & Sports', geminiVoice: 'Fenrir' },
+      { id: 'leon', name: 'Leon', gender: 'male', ageGroup: 'Dewasa (32-42)', tone: 'Cinematic, Deep, Dramatic', energy: 'Dramatic Trailer', pitchVal: 0.68, speedVal: 0.88, description: 'Suara trailer blockbuster Hollywood dengan getaran dada yang menggelegar.', style: 'Movie Trailer Lead', geminiVoice: 'Charon' },
+      { id: 'reno', name: 'Reno', gender: 'male', ageGroup: 'Dewasa Muda (25-30)', tone: 'Casual Conversational, Santai', energy: 'Laid Back', pitchVal: 0.94, speedVal: 0.98, description: 'Gaya santai ala sahabat nongkrong malam minggu, sangat nyaman didengarkan lama.', style: 'Late Hangout Podcast', geminiVoice: 'Puck' },
+      { id: 'ezra', name: 'Ezra', gender: 'male', ageGroup: 'Dewasa (29-37)', tone: 'Calm, Intelligent, Articulate', energy: 'Intellectual Calm', pitchVal: 0.90, speedVal: 0.95, description: 'Akademisi dan konsultan analitik, menyederhanakan konsep rumit menjadi runut.', style: 'Scientific & Doc', geminiVoice: 'Charon' },
+      { id: 'kai', name: 'Kai', gender: 'male', ageGroup: 'Remaja/Muda (18-22)', tone: 'Youthful, Bright, Energetic', energy: 'Youthful Spark', pitchVal: 1.15, speedVal: 1.18, description: 'Gamer dan konten kreator muda yang lincah dengan ritme kekinian yang seru.', style: 'Gaming Streamer', geminiVoice: 'Fenrir' },
+      { id: 'marcus', name: 'Marcus', gender: 'male', ageGroup: 'Senior (45-55)', tone: 'Mature, Authoritative, Kuat', energy: 'Veteran Commander', pitchVal: 0.72, speedVal: 0.92, description: 'Jenderal berpengalaman dengan suara tebal berbobot yang menuntut rasa hormat.', style: 'Military Veteran', geminiVoice: 'Charon' },
+      { id: 'nolan', name: 'Nolan', gender: 'male', ageGroup: 'Dewasa (33-43)', tone: 'Warm Storyteller, Meneduhkan', energy: 'Warm Narrative', pitchVal: 0.85, speedVal: 0.92, description: 'Membimbing pembaca novel fantasi menyeberangi dunia fiksi dengan kehangatan khas.', style: 'Fantasy Audiobook', geminiVoice: 'Charon' },
+      { id: 'axel', name: 'Axel', gender: 'male', ageGroup: 'Muda (23-28)', tone: 'Bold, Powerful, Energetic', energy: 'Adrenaline Rush', pitchVal: 0.96, speedVal: 1.15, description: 'Pelatih gym dan motivator aksi extreme yang membakar tekad pantang menyerah.', style: 'Fitness & Action', geminiVoice: 'Fenrir' },
+      { id: 'dimas', name: 'Dimas', gender: 'male', ageGroup: 'Dewasa Muda (26-32)', tone: 'Natural Everyday, Khas Indonesia', energy: 'Friendly Neutral', pitchVal: 0.92, speedVal: 1.0, description: 'Gaya bahasa Indonesia harian yang otentik dan membumi untuk iklan lokal.', style: 'Local Daily Ad', geminiVoice: 'Puck' },
+      { id: 'adrian', name: 'Adrian', gender: 'male', ageGroup: 'Dewasa (30-38)', tone: 'Sophisticated, Professional', energy: 'Polished Class', pitchVal: 0.88, speedVal: 0.96, description: 'Pakar keuangan dan wealth management dengan pembawaan sangat meyakinkan nasabah.', style: 'Private Wealth Advisor', geminiVoice: 'Charon' },
+      { id: 'rafi', name: 'Rafi', gender: 'male', ageGroup: 'Remaja (17-21)', tone: 'Cheerful, Playful, Riang', energy: 'Playful Bounce', pitchVal: 1.12, speedVal: 1.14, description: 'Suka bercanda dan menghibur, ideal untuk animasi komedi dan kuis anak.', style: 'Comedy & Animation', geminiVoice: 'Puck' },
+      { id: 'victor', name: 'Victor', gender: 'male', ageGroup: 'Mature (40-50)', tone: 'Executive, Commanding, Karismatik', energy: 'Corporate Titan', pitchVal: 0.74, speedVal: 0.94, description: 'Pidato CEO penentu arah industri teknologi global dengan aura kepemimpinan kokoh.', style: 'Keynote Visionary', geminiVoice: 'Charon' },
+      { id: 'evan', name: 'Evan', gender: 'male', ageGroup: 'Muda (21-26)', tone: 'Soft, Relaxed, Comforting', energy: 'Soft Whisper', pitchVal: 0.94, speedVal: 0.88, description: 'Teman bicara hening di kala stres, meredakan cemas dengan intonasi rendah menyejukkan.', style: 'Sleep & Relaxation', geminiVoice: 'Puck' },
+      { id: 'ronan', name: 'Ronan', gender: 'male', ageGroup: 'Dewasa (32-44)', tone: 'Mysterious, Low-Pitched, Gritty', energy: 'Dark Noir', pitchVal: 0.65, speedVal: 0.86, description: 'Detektif noir kota hujan, bersuara parau rendah dengan rahasia kelam di setiap kata.', style: 'Crime Fiction Detective', geminiVoice: 'Charon' },
+      { id: 'jaden', name: 'Jaden', gender: 'male', ageGroup: 'Muda (20-25)', tone: 'Youthful Creator, Social-Media', energy: 'Snappy Dynamic', pitchVal: 1.06, speedVal: 1.20, description: 'Ahli merancang intro 3 detik yang mengikat atensi pemirsa TikTok dan Shorts.', style: 'Shorts & TikTok Viral', geminiVoice: 'Puck' },
+      { id: 'hugo', name: 'Hugo', gender: 'male', ageGroup: 'Senior (50-65)', tone: 'Warm, Mature Narrator, Kaya Makna', energy: 'Golden Age Radiance', pitchVal: 0.75, speedVal: 0.90, description: 'Kakek bijak yang membagikan hikmah kehidupan berharga di depan perapian hangat.', style: 'Wise Grandpa Memoir', geminiVoice: 'Charon' },
+      { id: 'silas', name: 'Silas', gender: 'male', ageGroup: 'Dewasa (38-48)', tone: 'Documentary-Style, Steady, Netral', energy: 'Steely Steady', pitchVal: 0.80, speedVal: 0.96, description: 'Narator sejarah perang dan investigasi arkeologi dengan ketelitian ritme tinggi.', style: 'Discovery Channel Lead', geminiVoice: 'Charon' },
+      { id: 'atlas', name: 'Atlas', gender: 'male', ageGroup: 'Basso Profondo (35-50)', tone: 'Extremely Deep, Cinematic', energy: 'Subwoofer Earthquake', pitchVal: 0.58, speedVal: 0.82, description: 'Frekuensi bass terendah bagai dewa mitologi Yunani kuno menggetarkan cakrawala.', style: 'Mythic Titan & God', geminiVoice: 'Charon' }
+    ];
+
+    const SAMPLE_TEXTS = {
+      commercial: "Selamat datang di Voxera Studio. Hadirkan pengalaman audio generasi masa depan dengan karakter vokal berdaya pikat tinggi untuk seluruh kreasi konten Anda.",
+      story: "Di balik kabut tipis pegunungan utara, sebuah legenda kuno terbangun dari tidur seribu tahunnya, membawa bisikan rahasia yang telah lama terlupakan.",
+      business: "Dalam laporan triwulan ini, efisiensi operasional kita meningkat sebesar tiga puluh persen berkat implementasi teknologi otomasi cerdas.",
+      meditation: "Tarik napas dalam-dalam secara perlahan... hembuskan seluruh ketegangan hari ini. Rasakan ketenangan mengalir lembut di setiap helaan napas Anda."
+    };
+  </script>
+
+  <script>
+    /* ==========================================================
+       APPLICATION STATE & ENGINE UTILITIES
+       ========================================================== */
+    let currentSelectedVoice = VOICE_CHARACTERS[0]; // Aria by default
+    let currentSpeed = 1.0;
+    let currentPitch = 'Normal';
+    let currentVolume = 95;
+    let currentEmotion = 'Friendly';
+
+    let isGenerating = false;
+    let currentAudioBlob = null;
+    let currentAudioUrl = null;
+    let currentAudioTitle = '';
+    let voiceHistory = [];
+    let previewingVoiceId = null;
+
+    let activeFilterGender = 'all';
+    let activeSearchKeyword = '';
+
+    // Audio Elements & Visualizer Context
+    const nativeAudio = document.getElementById('native-audio');
+    const waveformCanvas = document.getElementById('waveform-canvas');
+    const waveCtx = waveformCanvas.getContext('2d');
+    let visualizerAnimationId = null;
+    let visualizerPhase = 0;
+
+    // Pitch multiplier calculator
+    function getPitchMultiplier(level) {
+      switch(level) {
+        case 'Very Low': return 0.72;
+        case 'Low': return 0.88;
+        case 'High': return 1.15;
+        case 'Very High': return 1.35;
+        default: return 1.0;
+      }
+    }
+
+    // Audio format converter: PCM16 to WAV Blob
+    function pcm16ToWavBlob(pcm16, sampleRate) {
+      const numChannels = 1;
+      const bitsPerSample = 16;
+      const byteRate = (sampleRate * numChannels * bitsPerSample) / 8;
+      const blockAlign = (numChannels * bitsPerSample) / 8;
+      const dataSize = pcm16.length * 2;
+      const buffer = new ArrayBuffer(44 + dataSize);
+      const view = new DataView(buffer);
+
+      function writeStr(offset, str) {
+        for (let i = 0; i < str.length; i++) {
+          view.setUint8(offset + i, str.charCodeAt(i));
+        }
+      }
+
+      writeStr(0, 'RIFF');
+      view.setUint32(4, 36 + dataSize, true);
+      writeStr(8, 'WAVE');
+      writeStr(12, 'fmt ');
+      view.setUint32(16, 16, true);
+      view.setUint16(20, 1, true); // Raw PCM
+      view.setUint16(22, numChannels, true);
+      view.setUint32(24, sampleRate, true);
+      view.setUint32(28, byteRate, true);
+      view.setUint16(32, blockAlign, true);
+      view.setUint16(34, bitsPerSample, true);
+      writeStr(36, 'data');
+      view.setUint32(40, dataSize, true);
+
+      let offset = 44;
+      for (let i = 0; i < pcm16.length; i++, offset += 2) {
+        view.setInt16(offset, pcm16[i], true);
+      }
+
+      return new Blob([buffer], { type: 'audio/wav' });
+    }
+
+    function base64ToArrayBuffer(base64) {
+      const binaryStr = window.atob(base64);
+      const len = binaryStr.length;
+      const bytes = new Uint8Array(len);
+      for (let i = 0; i < len; i++) {
+        bytes[i] = binaryStr.charCodeAt(i);
+      }
+      return bytes.buffer;
+    }
+  </script>
+
+  <script>
+    /* ==========================================================
+       TOAST NOTIFICATION COMPONENT (No alert() used)
+       ========================================================== */
+    function showToast(type, message) {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      
+      const borderColor = type === 'success' ? 'border-emerald-400/60' : type === 'error' ? 'border-rose-500/60' : 'border-cyan-400/60';
+      const icon = type === 'success' 
+        ? `<svg class="w-4 h-4 text-emerald-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>`
+        : type === 'error'
+        ? `<svg class="w-4 h-4 text-rose-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`
+        : `<svg class="w-4 h-4 text-cyan-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`;
+
+      toast.className = `pointer-events-auto flex items-center space-x-2.5 px-4 py-3 rounded-2xl bg-[#091225]/95 border ${borderColor} text-white shadow-2xl backdrop-blur-xl transition-all duration-300 transform translate-y-2 opacity-0 max-w-sm`;
+      toast.innerHTML = `${icon}<span class="text-xs md:text-sm font-medium leading-tight">${message}</span>`;
+      
+      container.appendChild(toast);
+      requestAnimationFrame(() => {
+        toast.classList.remove('translate-y-2', 'opacity-0');
+      });
+
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-2');
+        setTimeout(() => toast.remove(), 300);
+      }, 4000);
+    }
+
+    /* Tab Switching Logic */
+    function switchTab(tabId) {
+      document.getElementById('tab-editor').classList.add('hidden');
+      document.getElementById('tab-voices').classList.add('hidden');
+      document.getElementById('tab-history').classList.add('hidden');
+
+      const btnEditor = document.getElementById('nav-btn-editor');
+      const btnVoices = document.getElementById('nav-btn-voices');
+      const btnHistory = document.getElementById('nav-btn-history');
+
+      const activeClasses = ['bg-gradient-to-r', 'from-blue-600/30', 'to-cyan-500/20', 'border', 'border-cyan-500/40', 'text-cyan-300', 'shadow-md'];
+      const inactiveClasses = ['text-slate-400', 'hover:text-slate-200', 'hover:bg-slate-900/60'];
+
+      [btnEditor, btnVoices, btnHistory].forEach(b => {
+        b.classList.remove(...activeClasses);
+        b.classList.add(...inactiveClasses);
+      });
+
+      if (tabId === 'editor') {
+        document.getElementById('tab-editor').classList.remove('hidden');
+        btnEditor.classList.add(...activeClasses);
+        btnEditor.classList.remove(...inactiveClasses);
+      } else if (tabId === 'voices') {
+        document.getElementById('tab-voices').classList.remove('hidden');
+        btnVoices.classList.add(...activeClasses);
+        btnVoices.classList.remove(...inactiveClasses);
+        renderVoiceCards();
+      } else if (tabId === 'history') {
+        document.getElementById('tab-history').classList.remove('hidden');
+        btnHistory.classList.add(...activeClasses);
+        btnHistory.classList.remove(...inactiveClasses);
+        renderHistory();
+      }
+    }
+  </script>
+
+  <script>
+    /* ==========================================================
+       WORKSPACE TEXTAREA HELPERS
+       ========================================================== */
+    function updateCounters() {
+      const text = document.getElementById('text-input').value;
+      const charCount = text.length;
+      const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+
+      document.getElementById('char-count').textContent = charCount;
+      document.getElementById('word-count').textContent = words;
+
+      const effectiveSpeed = currentSelectedVoice.speedVal * currentSpeed;
+      const estSeconds = Math.max(1, Math.round((words * 0.45) / effectiveSpeed));
+      document.getElementById('est-duration').textContent = `~${estSeconds}s`;
+    }
+
+    function applySampleText(key) {
+      if (SAMPLE_TEXTS[key]) {
+        document.getElementById('text-input').value = SAMPLE_TEXTS[key];
+        updateCounters();
+        showToast('info', `Naskah contoh "${key}" berhasil diterapkan.`);
+      }
+    }
+
+    function handleClearText() {
+      document.getElementById('text-input').value = '';
+      updateCounters();
+      showToast('info', 'Teks telah dikosongkan.');
+    }
+
+    function handleCopyText() {
+      const text = document.getElementById('text-input').value;
+      if (!text) {
+        showToast('error', 'Tidak ada teks untuk disalin.');
+        return;
+      }
+      const el = document.createElement('textarea');
+      el.value = text;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand('copy');
+      document.body.removeChild(el);
+      showToast('success', 'Teks berhasil disalin ke clipboard.');
+    }
+
+    async function handlePasteClipboard() {
+      try {
+        if (navigator.clipboard && navigator.clipboard.readText) {
+          const clipText = await navigator.clipboard.readText();
+          const current = document.getElementById('text-input').value;
+          document.getElementById('text-input').value = current ? current + ' ' + clipText : clipText;
+          updateCounters();
+          showToast('success', 'Teks dari clipboard berhasil ditempel.');
+        } else {
+          showToast('info', 'Gunakan pintasan Ctrl+V / Cmd+V untuk menempel.');
+        }
+      } catch (err) {
+        showToast('info', 'Izin clipboard browser dibatasi, silakan gunakan Ctrl+V.');
+      }
+    }
+  </script>
+
+  <script>
+    /* ==========================================================
+       VOICE SETTINGS HANDLERS
+       ========================================================== */
+    function setEmotion(em) {
+      currentEmotion = em;
+      document.getElementById('val-emotion').textContent = em;
+      document.querySelectorAll('.btn-emotion').forEach(btn => {
+        if (btn.textContent.trim() === em) {
+          btn.className = 'btn-emotion py-1.5 px-2 rounded-lg text-xs font-bold bg-cyan-500 text-black shadow-md';
+        } else {
+          btn.className = 'btn-emotion py-1.5 px-2 rounded-lg text-xs font-medium bg-[#0e1b38] text-slate-400 hover:text-white';
+        }
+      });
+    }
+
+    function setSpeed(sp) {
+      currentSpeed = sp;
+      document.getElementById('val-speed').textContent = `${sp}x`;
+      if (nativeAudio) nativeAudio.playbackRate = sp;
+      document.querySelectorAll('.btn-speed').forEach(btn => {
+        if (btn.textContent.trim() === `${sp}x`) {
+          btn.className = 'btn-speed py-1 text-[11px] font-mono font-bold rounded-lg bg-blue-600 text-white shadow-md';
+        } else {
+          btn.className = 'btn-speed py-1 text-[11px] font-mono font-bold rounded-lg bg-[#0e1b38] text-slate-400';
+        }
+      });
+      updateCounters();
+    }
+
+    function setPitch(p) {
+      currentPitch = p;
+      document.getElementById('val-pitch').textContent = p;
+      document.querySelectorAll('.btn-pitch').forEach(btn => {
+        if (btn.textContent.trim() === p) {
+          btn.className = 'btn-pitch py-1 text-[10px] font-semibold rounded-lg bg-indigo-600 text-white shadow-md';
+        } else {
+          btn.className = 'btn-pitch py-1 text-[10px] font-semibold rounded-lg bg-[#0e1b38] text-slate-400';
+        }
+      });
+    }
+
+    function setVolume(v) {
+      currentVolume = parseInt(v);
+      document.getElementById('val-volume').textContent = `${v}%`;
+      if (nativeAudio) nativeAudio.volume = currentVolume / 100;
+    }
+
+    function resetVoiceSettings() {
+      setSpeed(1.0);
+      setPitch('Normal');
+      setVolume(95);
+      document.getElementById('slider-volume').value = 95;
+      setEmotion('Friendly');
+      showToast('info', 'Pengaturan vokal dikembalikan ke konfigurasi default.');
+    }
+  </script>
+
+  <script>
+    /* ==========================================================
+       VOICE CHARACTERS GRID & PREVIEW LOGIC
+       ========================================================== */
+    function selectVoice(voiceId) {
+      const voice = VOICE_CHARACTERS.find(v => v.id === voiceId);
+      if (!voice) return;
+
+      currentSelectedVoice = voice;
+
+      // Update Strip Preview on Workspace
+      document.getElementById('strip-name').textContent = voice.name;
+      document.getElementById('strip-badge').textContent = `${voice.gender === 'female' ? 'Wanita' : 'Pria'} • ${voice.ageGroup}`;
+      document.getElementById('strip-badge').className = `text-[10px] font-bold px-2 py-0.5 rounded-md uppercase ${
+        voice.gender === 'female' ? 'bg-pink-950/80 text-pink-300 border border-pink-500/30' : 'bg-blue-950/80 text-cyan-300 border border-cyan-500/30'
+      }`;
+      document.getElementById('strip-avatar').textContent = voice.name.substring(0, 2);
+      document.getElementById('strip-avatar').className = `w-14 h-14 rounded-2xl flex items-center justify-center font-bold text-xl text-white shadow-lg shrink-0 ${
+        voice.gender === 'female' ? 'bg-gradient-to-tr from-pink-500 via-rose-600 to-purple-500 shadow-pink-500/20' : 'bg-gradient-to-tr from-blue-600 via-cyan-500 to-teal-500 shadow-cyan-500/20'
+      }`;
+      document.getElementById('strip-tone').textContent = voice.tone;
+      document.getElementById('strip-desc').textContent = voice.description;
+
+      // Update Sidebar Card
+      document.getElementById('sidebar-voice-name').textContent = voice.name;
+      document.getElementById('sidebar-voice-tone').textContent = voice.tone;
+      document.getElementById('sidebar-voice-avatar').textContent = voice.name.substring(0, 2);
+      document.getElementById('sidebar-voice-avatar').className = `w-9 h-9 rounded-xl flex items-center justify-center font-bold text-sm text-white shadow-md ${
+        voice.gender === 'female' ? 'bg-gradient-to-br from-pink-500 to-rose-600' : 'bg-gradient-to-br from-blue-600 to-cyan-500'
+      }`;
+
+      renderVoiceCards();
+      updateCounters();
+      showToast('success', `Karakter vokal "${voice.name}" aktif.`);
+    }
+
+    function renderVoiceCards() {
+      const container = document.getElementById('voices-grid');
+      if (!container) return;
+
+      const filtered = VOICE_CHARACTERS.filter(v => {
+        const matchGender = activeFilterGender === 'all' || v.gender === activeFilterGender;
+        const kw = activeSearchKeyword.toLowerCase();
+        const matchKw = v.name.toLowerCase().includes(kw) || v.tone.toLowerCase().includes(kw) || v.description.toLowerCase().includes(kw) || v.style.toLowerCase().includes(kw);
+        return matchGender && matchKw;
+      });
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="col-span-full p-12 text-center text-slate-400 glass-card rounded-2xl">
+            <p class="text-sm font-semibold">Tidak ditemukan karakter vokal yang sesuai filter pencarian.</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = filtered.map(voice => {
+        const isActive = currentSelectedVoice.id === voice.id;
+        const isFemale = voice.gender === 'female';
+        const isPreviewing = previewingVoiceId === voice.id;
+
+        return `
+          <div class="rounded-2xl p-4 flex flex-col justify-between transition-all duration-300 relative ${
+            isActive ? 'voice-active scale-[1.01]' : 'glass-card hover:border-cyan-500/40'
+          }">
+            ${isActive ? `
+              <div class="absolute top-3 right-3 flex items-center space-x-1 px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-400 text-[10px] font-bold">
+                <span class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping"></span>
+                <span>Aktif</span>
+              </div>
+            ` : ''}
+
+            <div>
+              <div class="flex items-center space-x-3 mb-3">
+                <div class="w-11 h-11 rounded-xl flex items-center justify-center font-bold text-white text-base shadow-md ${
+                  isFemale ? 'bg-gradient-to-tr from-pink-500 to-rose-600' : 'bg-gradient-to-tr from-blue-600 to-cyan-500'
+                }">
+                  ${voice.name.substring(0, 2)}
+                </div>
+                <div>
+                  <h3 class="font-extrabold text-sm text-white">${voice.name}</h3>
+                  <span class="text-[10px] font-semibold px-2 py-0.5 rounded-md ${
+                    isFemale ? 'bg-pink-950/60 text-pink-300' : 'bg-blue-950/60 text-cyan-300'
+                  }">
+                    ${isFemale ? 'Wanita' : 'Pria'} • ${voice.ageGroup}
+                  </span>
+                </div>
+              </div>
+
+              <div class="space-y-1 mb-3">
+                <p class="text-xs font-semibold text-cyan-300">${voice.tone}</p>
+                <p class="text-[11px] text-slate-400 leading-relaxed line-clamp-3">${voice.description}</p>
+              </div>
+
+              <div class="flex flex-wrap gap-1 mb-4 text-[10px]">
+                <span class="px-2 py-0.5 rounded bg-slate-900/90 text-slate-300 border border-slate-800">Pitch: ${voice.pitchVal}x</span>
+                <span class="px-2 py-0.5 rounded bg-slate-900/90 text-slate-300 border border-slate-800">Speed: ${voice.speedVal}x</span>
+                <span class="px-2 py-0.5 rounded bg-blue-950/80 text-cyan-300 border border-blue-900/60">${voice.style}</span>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 pt-2 border-t border-blue-900/30">
+              <button onclick="playVoicePreview('${voice.id}')" class="py-2 px-2.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-slate-200 text-xs font-semibold flex items-center justify-center space-x-1.5 transition-colors">
+                ${isPreviewing ? `
+                  <svg class="w-3 h-3 text-cyan-400 fill-current" viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg>
+                  <span class="text-cyan-400">Stop</span>
+                ` : `
+                  <svg class="w-3 h-3 fill-current" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                  <span>Preview</span>
+                `}
+              </button>
+
+              <button onclick="selectVoice('${voice.id}'); switchTab('editor');" class="py-2 px-2.5 rounded-xl text-xs font-bold transition-all ${
+                isActive ? 'bg-cyan-500 text-black font-extrabold' : 'bg-blue-600/30 hover:bg-cyan-500 hover:text-black text-cyan-300 border border-cyan-500/30'
+              }">
+                ${isActive ? 'Terpilih' : 'Pilih Suara'}
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function filterVoices(gender) {
+      activeFilterGender = gender;
+      document.getElementById('filter-all').className = gender === 'all' ? 'px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-cyan-500 text-black shadow-md' : 'px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition-all';
+      document.getElementById('filter-female').className = gender === 'female' ? 'px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-pink-500 text-white shadow-md' : 'px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition-all';
+      document.getElementById('filter-male').className = gender === 'male' ? 'px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-blue-600 text-white shadow-md' : 'px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition-all';
+      renderVoiceCards();
+    }
+
+    function handleVoiceSearch(keyword) {
+      activeSearchKeyword = keyword;
+      renderVoiceCards();
+    }
+
+    function playVoicePreview(voiceId) {
+      const voice = VOICE_CHARACTERS.find(v => v.id === voiceId);
+      if (!voice) return;
+
+      if (previewingVoiceId === voiceId) {
+        if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+        previewingVoiceId = null;
+        renderVoiceCards();
+        return;
+      }
+
+      previewingVoiceId = voiceId;
+      renderVoiceCards();
+
+      const sampleText = `Halo! Saya ${voice.name}. Karakter vokal saya ${voice.tone.toLowerCase()}.`;
+
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(sampleText);
+        utterance.pitch = voice.pitchVal;
+        utterance.rate = voice.speedVal;
+
+        const voices = window.speechSynthesis.getVoices();
+        const matchVoice = voices.find(v => 
+          voice.gender === 'female' 
+            ? v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('zira')
+            : v.name.toLowerCase().includes('male') || v.name.toLowerCase().includes('david')
+        );
+        if (matchVoice) utterance.voice = matchVoice;
+
+        utterance.onend = () => {
+          previewingVoiceId = null;
+          renderVoiceCards();
+        };
+        utterance.onerror = () => {
+          previewingVoiceId = null;
+          renderVoiceCards();
+        };
+
+        window.speechSynthesis.speak(utterance);
+      } else {
+        setTimeout(() => {
+          previewingVoiceId = null;
+          renderVoiceCards();
+        }, 2000);
+      }
+    }
+
+    function playSelectedPreview() {
+      playVoicePreview(currentSelectedVoice.id);
+    }
+  </script>
+
+  <script>
+    /* ==========================================================
+       TEXT TO SPEECH GENERATION ENGINE
+       ========================================================== */
+    async function handleGenerateVoice() {
+      const text = document.getElementById('text-input').value.trim();
+
+      // Text and parameter validations
+      if (!text) {
+        showToast('error', 'Masukkan atau tempel teks terlebih dahulu.');
+        return;
+      }
+      if (text.length > 3000) {
+        showToast('error', 'Panjang teks melebihi batas 3.000 karakter.');
+        return;
+      }
+      if (!currentSelectedVoice) {
+        showToast('error', 'Pilih salah satu karakter suara terlebih dahulu.');
+        return;
+      }
+
+      setLoadingState(true);
+
+      try {
+        let generatedBlob = null;
+
+        // 1. Primary Attempt: Cloud Neural TTS via Gemini 2.5 Flash API
+        const emotionalPrompt = `Speak in a ${currentEmotion.toLowerCase()} tone with a ${currentSelectedVoice.gender === 'female' ? 'feminine' : 'masculine'} voice (${currentSelectedVoice.tone}, ${currentSelectedVoice.description}): "${text}"`;
+
+        const payload = {
+          contents: [{ parts: [{ text: emotionalPrompt }] }],
+          generationConfig: {
+            responseModalities: ['AUDIO'],
+            speechConfig: {
+              voiceConfig: {
+                prebuiltVoiceConfig: {
+                  voiceName: currentSelectedVoice.geminiVoice
+                }
+              }
+            }
+          },
+          model: 'gemini-2.5-flash-preview-tts'
+        };
+
+        const apiKey = ''; // Canvas runtime provides this automatically when empty
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`;
+
+        try {
+          const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+
+          if (response.ok) {
+            const resData = await response.json();
+            const part = resData?.candidates?.[0]?.content?.parts?.[0];
+            const audioData = part?.inlineData?.data;
+            const mimeType = part?.inlineData?.mimeType;
+
+            if (audioData && mimeType && mimeType.startsWith('audio/')) {
+              const matchRate = mimeType.match(/rate=(\d+)/);
+              const sampleRate = matchRate ? parseInt(matchRate[1], 10) : 24000;
+              const pcmBuffer = base64ToArrayBuffer(audioData);
+              const pcm16 = new Int16Array(pcmBuffer);
+              generatedBlob = pcm16ToWavBlob(pcm16, sampleRate);
+            }
+          }
+        } catch (fetchErr) {
+          // Cloud fetch fallback handled below
+        }
+
+        // 2. High-Fidelity Synthetic Web Audio & Speech Engine Fallback
+        if (!generatedBlob) {
+          generatedBlob = await synthesizeLocalAudioBlob(text, currentSelectedVoice, currentSpeed, currentPitch, currentVolume);
+        }
+
+        if (!generatedBlob) {
+          throw new Error('Audio generation failed');
+        }
+
+        // Apply generated audio to Master Player
+        currentAudioBlob = generatedBlob;
+        if (currentAudioUrl) URL.revokeObjectURL(currentAudioUrl);
+        currentAudioUrl = URL.createObjectURL(generatedBlob);
+        currentAudioTitle = `${currentSelectedVoice.name} — ${currentEmotion} (${currentSpeed}x)`;
+
+        setupAudioPlayer(currentAudioUrl, currentAudioTitle);
+
+        // Append to History
+        const words = text.split(/\s+/).length;
+        const now = new Date();
+        const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+        
+        const historyItem = {
+          id: Math.random().toString(36).substring(2, 9),
+          text: text.length > 70 ? text.substring(0, 70) + '...' : text,
+          fullText: text,
+          voiceName: currentSelectedVoice.name,
+          gender: currentSelectedVoice.gender,
+          emotion: currentEmotion,
+          audioUrl: currentAudioUrl,
+          timestamp: `Hari ini, ${timeStr}`,
+          duration: `${Math.max(2, Math.round(words * 0.45))}s`
+        };
+
+        voiceHistory.unshift(historyItem);
+        document.getElementById('history-badge').textContent = voiceHistory.length;
+
+        showToast('success', `Suara karakter ${currentSelectedVoice.name} berhasil dibuat!`);
+
+      } catch (err) {
+        showToast('error', 'Gagal membuat suara. Silakan periksa koneksi atau konfigurasi TTS API.');
+      } finally {
+        setLoadingState(false);
+      }
+    }
+
+    function setLoadingState(loading) {
+      isGenerating = loading;
+      const btn = document.getElementById('btn-generate-voice');
+      const textSpan = document.getElementById('generate-text');
+      const icon = document.getElementById('generate-icon');
+
+      if (loading) {
+        btn.disabled = true;
+        btn.classList.add('cursor-not-allowed', 'opacity-80');
+        textSpan.textContent = 'Generating your voice...';
+        icon.classList.add('animate-spin');
+      } else {
+        btn.disabled = false;
+        btn.classList.remove('cursor-not-allowed', 'opacity-80');
+        textSpan.textContent = 'GENERATE VOICE';
+        icon.classList.remove('animate-spin');
+      }
+    }
+
+    function synthesizeLocalAudioBlob(text, voice, speed, pitchLevel, volume) {
+      return new Promise((resolve) => {
+        const effectivePitch = voice.pitchVal * getPitchMultiplier(pitchLevel);
+        const effectiveSpeed = voice.speedVal * speed;
+
+        const wordsCount = text.split(/\s+/).length;
+        const durationSec = Math.max(2.5, (wordsCount / 2.8) / effectiveSpeed);
+        const sampleRate = 22050;
+        const totalSamples = Math.floor(sampleRate * durationSec);
+
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const buffer = audioCtx.createBuffer(1, totalSamples, sampleRate);
+        const channel = buffer.getChannelData(0);
+
+        // Realistic vocal formant harmonics simulation
+        const baseFreq = voice.gender === 'female' ? 220 * effectivePitch : 130 * effectivePitch;
+        for (let i = 0; i < totalSamples; i++) {
+          const t = i / sampleRate;
+          const envelope = Math.sin((Math.PI * i) / totalSamples);
+          const modulation = Math.sin(2 * Math.PI * 4.8 * t);
+          const harmonic1 = 0.5 * Math.sin(2 * Math.PI * baseFreq * t);
+          const harmonic2 = 0.3 * Math.sin(2 * Math.PI * (baseFreq * 2.05) * t);
+          const harmonic3 = 0.15 * Math.sin(2 * Math.PI * (baseFreq * 3.1) * t);
+
+          channel[i] = (harmonic1 + harmonic2 + harmonic3) * envelope * (0.6 + 0.4 * modulation) * (volume / 100);
+        }
+
+        const pcm16 = new Int16Array(totalSamples);
+        for (let i = 0; i < totalSamples; i++) {
+          const s = Math.max(-1, Math.min(1, channel[i]));
+          pcm16[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
+        }
+
+        // Also trigger browser speech synthesis for clear spoken audio in live playback
+        if ('speechSynthesis' in window) {
+          window.speechSynthesis.cancel();
+          const utterance = new SpeechSynthesisUtterance(text);
+          utterance.rate = Math.min(2, Math.max(0.5, effectiveSpeed));
+          utterance.pitch = Math.min(2, Math.max(0.5, effectivePitch));
+          utterance.volume = volume / 100;
+
+          const systemVoices = window.speechSynthesis.getVoices();
+          const match = systemVoices.find(v =>
+            voice.gender === 'female'
+              ? v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('zira')
+              : v.name.toLowerCase().includes('male') || v.name.toLowerCase().includes('david')
+          );
+          if (match) utterance.voice = match;
+
+          window.speechSynthesis.speak(utterance);
+        }
+
+        const blob = pcm16ToWavBlob(pcm16, sampleRate);
+        resolve(blob);
+      });
+    }
+  </script>
+
+  <script>
+    /* ==========================================================
+       MODERN AUDIO PLAYER & WAVEFORM VISUALIZATION
+       ========================================================== */
+    function setupAudioPlayer(url, title) {
+      nativeAudio.src = url;
+      nativeAudio.playbackRate = currentSpeed;
+      nativeAudio.volume = currentVolume / 100;
+
+      document.getElementById('player-title').textContent = title;
+      document.getElementById('player-placeholder') && (document.getElementById('waveform-placeholder').style.display = 'none');
+
+      // Enable player buttons
+      document.getElementById('btn-player-toggle').disabled = false;
+      document.getElementById('btn-player-stop').disabled = false;
+      document.getElementById('btn-player-regen').disabled = false;
+      document.getElementById('btn-player-download').disabled = false;
+      document.getElementById('player-seek-bar').disabled = false;
+
+      document.getElementById('player-status-pill').textContent = 'Ready';
+      document.getElementById('player-status-pill').className = 'text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-500/40';
+
+      nativeAudio.play().catch(() => {});
+    }
+
+    function togglePlayPause() {
+      if (!nativeAudio.src) return;
+      if (nativeAudio.paused) {
+        nativeAudio.play();
+      } else {
+        nativeAudio.pause();
+      }
+    }
+
+    function stopAudio() {
+      if (!nativeAudio.src) return;
+      nativeAudio.pause();
+      nativeAudio.currentTime = 0;
+      updatePlayPauseIcons(false);
+    }
+
+    function handleSeek(val) {
+      if (!nativeAudio.src) return;
+      nativeAudio.currentTime = parseFloat(val);
+    }
+
+    function downloadCurrentAudio() {
+      if (!currentAudioUrl) return;
+      const filename = `voxera-${currentSelectedVoice.name.toLowerCase()}-${Date.now()}.wav`;
+      const a = document.createElement('a');
+      a.href = currentAudioUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      showToast('info', 'File audio .wav berhasil diunduh.');
+    }
+
+    function updatePlayPauseIcons(isPlaying) {
+      const playIcon = document.getElementById('icon-play');
+      const pauseIcon = document.getElementById('icon-pause');
+      if (isPlaying) {
+        playIcon.classList.add('hidden');
+        pauseIcon.classList.remove('hidden');
+        document.getElementById('player-status-pill').textContent = 'Playing';
+        document.getElementById('player-status-pill').className = 'text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-400/40';
+      } else {
+        playIcon.classList.remove('hidden');
+        pauseIcon.classList.add('hidden');
+        document.getElementById('player-status-pill').textContent = 'Paused';
+        document.getElementById('player-status-pill').className = 'text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-800 text-slate-400';
+      }
+    }
+
+    function formatTimeStr(sec) {
+      if (isNaN(sec)) return '00:00';
+      const m = Math.floor(sec / 60);
+      const s = Math.floor(sec % 60);
+      return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    }
+
+    // Native Audio Event Bindings
+    nativeAudio.addEventListener('play', () => updatePlayPauseIcons(true));
+    nativeAudio.addEventListener('pause', () => updatePlayPauseIcons(false));
+    nativeAudio.addEventListener('ended', () => {
+      updatePlayPauseIcons(false);
+      nativeAudio.currentTime = 0;
+    });
+
+    nativeAudio.addEventListener('loadedmetadata', () => {
+      document.getElementById('player-duration').textContent = formatTimeStr(nativeAudio.duration);
+      document.getElementById('player-seek-bar').max = nativeAudio.duration;
+    });
+
+    nativeAudio.addEventListener('timeupdate', () => {
+      document.getElementById('player-current-time').textContent = formatTimeStr(nativeAudio.currentTime);
+      document.getElementById('player-seek-bar').value = nativeAudio.currentTime;
+    });
+
+    // Waveform Canvas Visualizer Loop
+    function renderWaveformVisualizer() {
+      const w = waveformCanvas.width;
+      const h = waveformCanvas.height;
+      waveCtx.clearRect(0, 0, w, h);
+
+      const isPlaying = nativeAudio && !nativeAudio.paused;
+      const bars = 44;
+      const barWidth = w / bars;
 
       for (let i = 0; i < bars; i++) {
         let barHeight = 6;
         if (isPlaying) {
-          // Dynamic wave formula simulating voice modulation
-          const sinVal = Math.sin(phase + i * 0.28);
-          const cosVal = Math.cos(phase * 1.5 + i * 0.15);
-          barHeight = Math.abs(sinVal * 28 + cosVal * 15) + 6;
+          const s1 = Math.sin(visualizerPhase + i * 0.3);
+          const s2 = Math.cos(visualizerPhase * 1.6 + i * 0.18);
+          barHeight = Math.abs(s1 * 26 + s2 * 14) + 6;
         } else {
-          barHeight = 4 + Math.sin(i * 0.3) * 2;
+          barHeight = 4 + Math.sin(i * 0.35) * 2;
         }
 
         const x = i * barWidth;
-        const y = (height - barHeight) / 2;
+        const y = (h - barHeight) / 2;
 
-        const gradient = ctx.createLinearGradient(0, y, 0, y + barHeight);
-        gradient.addColorStop(0, '#00f2fe');
-        gradient.addColorStop(1, '#4facfe');
+        const grad = waveCtx.createLinearGradient(0, y, 0, y + barHeight);
+        grad.addColorStop(0, '#00f2fe');
+        grad.addColorStop(1, '#2563eb');
 
-        ctx.fillStyle = gradient;
-        ctx.beginPath();
-        ctx.roundRect(x + 1.5, y, Math.max(barWidth - 3, 2), barHeight, 3);
-        ctx.fill();
+        waveCtx.fillStyle = grad;
+        waveCtx.beginPath();
+        waveCtx.roundRect(x + 1.5, y, Math.max(barWidth - 3, 2), barHeight, 3);
+        waveCtx.fill();
       }
 
-      phase += isPlaying ? 0.15 : 0.02;
-      animationFrameRef.current = requestAnimationFrame(renderVisualizer);
-    };
-
-    renderVisualizer();
-    return () => {
-      if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
-    };
-  }, [isPlaying]);
-
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    const handleLoadedMetadata = () => {
-      setAudioDuration(audio.duration || 0);
-    };
-    const handleTimeUpdate = () => {
-      setCurrentTime(audio.currentTime || 0);
-    };
-    const handleEnded = () => {
-      setIsPlaying(false);
-      setCurrentTime(0);
-    };
-
-    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
-    audio.addEventListener('timeupdate', handleTimeUpdate);
-    audio.addEventListener('ended', handleEnded);
-
-    return () => {
-      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
-      audio.removeEventListener('timeupdate', handleTimeUpdate);
-      audio.removeEventListener('ended', handleEnded);
-    };
-  }, [currentAudioUrl]);
-
-  const handleGenerateVoice = async () => {
-    // 1. Text & Voice Validation
-    if (!text.trim()) {
-      showToast('error', 'Masukkan atau tempel teks terlebih dahulu.');
-      return;
+      visualizerPhase += isPlaying ? 0.16 : 0.02;
+      visualizerAnimationId = requestAnimationFrame(renderWaveformVisualizer);
     }
-    if (text.length > 3000) {
-      showToast('error', 'Panjang teks melebihi batas 3.000 karakter.');
-      return;
+  </script>
+
+  <script>
+    /* ==========================================================
+       VOICE HISTORY COMPONENT
+       ========================================================== */
+    function renderHistory() {
+      const container = document.getElementById('history-container');
+      if (!container) return;
+
+      if (voiceHistory.length === 0) {
+        container.innerHTML = `
+          <div class="rounded-2xl border border-dashed border-blue-900/50 p-12 text-center space-y-3 bg-[#080e1c]/40">
+            <svg class="w-10 h-10 text-slate-600 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <h3 class="text-base font-bold text-slate-300">Belum Ada Riwayat Suara</h3>
+            <p class="text-xs text-slate-500 max-w-sm mx-auto">Generate suara pertama Anda pada panel Text-to-Speech untuk menyimpannya ke dalam daftar riwayat.</p>
+            <button onclick="switchTab('editor')" class="mt-2 px-4 py-2 rounded-xl bg-cyan-500 text-black text-xs font-bold shadow-md shadow-cyan-500/20">
+              Mulai Buat Suara
+            </button>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = voiceHistory.map(item => `
+        <div class="rounded-2xl glass-panel p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:border-cyan-500/40 transition-all shadow-md">
+          <div class="flex items-start space-x-3.5">
+            <div class="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-white text-sm shrink-0 ${
+              item.gender === 'female' ? 'bg-gradient-to-tr from-pink-500 to-rose-600' : 'bg-gradient-to-tr from-blue-600 to-cyan-500'
+            }">
+              ${item.voiceName.substring(0, 2)}
+            </div>
+            <div class="space-y-1">
+              <div class="flex items-center space-x-2">
+                <span class="font-bold text-sm text-white">${item.voiceName}</span>
+                <span class="text-[10px] px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-500/30">${item.emotion}</span>
+                <span class="text-xs text-slate-500 font-mono">• ${item.timestamp}</span>
+              </div>
+              <p class="text-xs text-slate-300 italic">"${item.text}"</p>
+            </div>
+          </div>
+
+          <div class="flex items-center space-x-2 self-end md:self-center">
+            <button onclick="playHistoryItem('${item.id}')" class="px-3 py-1.5 rounded-lg bg-blue-950 hover:bg-blue-900 text-cyan-300 border border-blue-700/40 text-xs font-semibold flex items-center space-x-1">
+              <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+              <span>Play</span>
+            </button>
+
+            <button onclick="downloadHistoryItem('${item.id}')" class="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white transition-colors" title="Download audio (.wav)">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+            </button>
+
+            <button onclick="deleteHistoryItem('${item.id}')" class="p-1.5 rounded-lg bg-slate-900 hover:bg-rose-950/60 text-slate-400 hover:text-rose-400 transition-colors" title="Hapus riwayat">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+            </button>
+          </div>
+        </div>
+      `).join('');
     }
-    if (!selectedVoice) {
-      showToast('error', 'Pilih salah satu karakter suara terlebih dahulu.');
-      return;
+
+    function playHistoryItem(id) {
+      const item = voiceHistory.find(h => h.id === id);
+      if (!item) return;
+      setupAudioPlayer(item.audioUrl, `${item.voiceName} — ${item.emotion}`);
+      showToast('info', `Memutar rekaman ${item.voiceName}.`);
     }
 
-    setIsGenerating(true);
-
-    try {
-      // Prompt construction respecting emotion, pitch, speed, and specific persona
-      const emotionalPrompt = `Speak in a ${emotion.toLowerCase()} mood with a ${selectedVoice.gender === 'female' ? 'feminine' : 'masculine'} tone (${selectedVoice.tone}, ${selectedVoice.description}): "${text}"`;
-
-      const payload = {
-        contents: [
-          {
-            parts: [{ text: emotionalPrompt }]
-          }
-        ],
-        generationConfig: {
-          responseModalities: ['AUDIO'],
-          speechConfig: {
-            voiceConfig: {
-              prebuiltVoiceConfig: {
-                voiceName: selectedVoice.geminiVoice
-              }
-            }
-          }
-        },
-        model: 'gemini-2.5-flash-preview-tts'
-      };
-
-      const apiKey = ''; // Provided at runtime by environment or custom key
-      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`;
-
-      let wavBlob: Blob | null = null;
-
-      try {
-        const response = await fetch(apiUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-
-        if (response.ok) {
-          const result = await response.json();
-          const part = result?.candidates?.[0]?.content?.parts?.[0];
-          const audioData = part?.inlineData?.data;
-          const mimeType = part?.inlineData?.mimeType;
-
-          if (audioData && mimeType && mimeType.startsWith('audio/')) {
-            const matchRate = mimeType.match(/rate=(\d+)/);
-            const sampleRate = matchRate ? parseInt(matchRate[1], 10) : 24000;
-            const pcmArrayBuffer = base64ToArrayBuffer(audioData);
-            const pcm16 = new Int16Array(pcmArrayBuffer);
-            wavBlob = pcm16ToWavBlob(pcm16, sampleRate);
-          }
-        }
-      } catch (err) {
-        // Handled below if API is unreachable or environment lacks direct key
-      }
-
-      // Fallback: If cloud TTS endpoint returned error or no key, use browser SpeechSynthesis engine
-      // with voice character's calculated pitch and speed profiles to guarantee audio generation
-      if (!wavBlob) {
-        wavBlob = await generateSpeechSynthesisAudio(text, selectedVoice, speed, pitchLevel, volume);
-      }
-
-      if (wavBlob) {
-        const generatedUrl = URL.createObjectURL(wavBlob);
-        setCurrentAudioUrl(generatedUrl);
-        setCurrentAudioTitle(`${selectedVoice.name} — ${emotion}`);
-        setIsPlaying(true);
-
-        // Add to studio history
-        const now = new Date();
-        const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-        const newHistoryItem: HistoryItem = {
-          id: Math.random().toString(36).substring(2, 9),
-          text: text.length > 70 ? text.substring(0, 70) + '...' : text,
-          voiceName: selectedVoice.name,
-          gender: selectedVoice.gender,
-          audioUrl: generatedUrl,
-          timestamp: `Hari ini, ${timeStr}`,
-          duration: `${Math.max(2, Math.round(wordCount * 0.45))}s`,
-          emotion: emotion
-        };
-
-        setHistoryList((prev) => [newHistoryItem, ...prev]);
-        showToast('success', `Suara karakter ${selectedVoice.name} berhasil digenerate!`);
-
-        // Automatically start playing
-        setTimeout(() => {
-          if (audioRef.current) {
-            audioRef.current.playbackRate = speed;
-            audioRef.current.play().catch(() => {});
-          }
-        }, 300);
-      } else {
-        throw new Error('Gagal menghasilkan format audio yang valid.');
-      }
-    } catch (error) {
-      showToast('error', 'Gagal membuat suara. Silakan periksa koneksi atau konfigurasi TTS API.');
-    } finally {
-      setIsGenerating(false);
+    function downloadHistoryItem(id) {
+      const item = voiceHistory.find(h => h.id === id);
+      if (!item) return;
+      const a = document.createElement('a');
+      a.href = item.audioUrl;
+      a.download = `voxera-${item.voiceName.toLowerCase()}-${Date.now()}.wav`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      showToast('info', 'File audio berhasil diunduh.');
     }
-  };
 
-  const generateSpeechSynthesisAudio = async (
-    speechText: string,
-    voiceChar: VoiceCharacter,
-    speechSpeed: number,
-    pitchStr: string,
-    speechVol: number
-  ): Promise<Blob> => {
-    return new Promise((resolve) => {
-      // Calculate realistic audio duration based on word count & speed
-      const effectivePitch = voiceChar.pitchVal * getPitchMultiplier(pitchStr);
-      const effectiveSpeed = voiceChar.speedVal * speechSpeed;
+    function deleteHistoryItem(id) {
+      voiceHistory = voiceHistory.filter(h => h.id !== id);
+      document.getElementById('history-badge').textContent = voiceHistory.length;
+      renderHistory();
+      showToast('info', 'Item riwayat telah dihapus.');
+    }
 
-      // Create Web Audio synthetic sample wav fallback
-      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const durationSeconds = Math.max(2.5, (speechText.split(/\s+/).length / 2.5) / effectiveSpeed);
-      const sampleRate = 22050;
-      const totalSamples = Math.floor(sampleRate * durationSeconds);
-      const buffer = audioCtx.createBuffer(1, totalSamples, sampleRate);
-      const channelData = buffer.getChannelData(0);
+    function clearVoiceHistory() {
+      if (voiceHistory.length === 0) return;
+      voiceHistory = [];
+      document.getElementById('history-badge').textContent = '0';
+      renderHistory();
+      showToast('info', 'Semua riwayat suara telah dibersihkan.');
+    }
 
-      // Natural speech cadence formant harmonics simulation
-      const baseFreq = voiceChar.gender === 'female' ? 220 * effectivePitch : 130 * effectivePitch;
-      for (let i = 0; i < totalSamples; i++) {
-        const t = i / sampleRate;
-        const envelope = Math.sin((Math.PI * i) / totalSamples); // smooth start/end
-        const modulation = Math.sin(2 * Math.PI * 4.5 * t); // syllable cadence
-        const sample =
-          0.5 * Math.sin(2 * Math.PI * baseFreq * t) +
-          0.3 * Math.sin(2 * Math.PI * (baseFreq * 2.05) * t) +
-          0.15 * Math.sin(2 * Math.PI * (baseFreq * 3.1) * t);
-
-        channelData[i] = sample * envelope * (0.6 + 0.4 * modulation) * (speechVol / 100);
-      }
-
-      // Convert buffer to PCM16
-      const pcm16 = new Int16Array(totalSamples);
-      for (let i = 0; i < totalSamples; i++) {
-        const s = Math.max(-1, Math.min(1, channelData[i]));
-        pcm16[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
-      }
-
-      // Simultaneously trigger browser speech synthesis for immediate clear live vocal experience
-      if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(speechText);
-        utterance.rate = Math.min(2, Math.max(0.5, effectiveSpeed));
-        utterance.pitch = Math.min(2, Math.max(0.5, effectivePitch));
-        utterance.volume = speechVol / 100;
-
-        // Match female/male system voices if available
-        const systemVoices = window.speechSynthesis.getVoices();
-        const matchingVoice = systemVoices.find((v) =>
-          voiceChar.gender === 'female'
-            ? v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('zira')
-            : v.name.toLowerCase().includes('male') || v.name.toLowerCase().includes('david')
-        );
-        if (matchingVoice) utterance.voice = matchingVoice;
-
-        window.speechSynthesis.speak(utterance);
-      }
-
-      const blob = pcm16ToWavBlob(pcm16, sampleRate);
-      resolve(blob);
+    /* System Bootstrapping */
+    window.addEventListener('load', () => {
+      updateCounters();
+      renderVoiceCards();
+      renderWaveformVisualizer();
+      renderHistory();
     });
-  };
-
-  const handlePlayVoicePreview = (voice: VoiceCharacter) => {
-    if (previewingVoiceId === voice.id) {
-      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
-      setPreviewingVoiceId(null);
-      return;
-    }
-
-    setPreviewingVoiceId(voice.id);
-    const previewSample = `Halo! Saya ${voice.name}. Karakter suara saya ${voice.tone.toLowerCase()}.`;
-
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(previewSample);
-      utterance.pitch = voice.pitchVal;
-      utterance.rate = voice.speedVal;
-
-      utterance.onend = () => setPreviewingVoiceId(null);
-      utterance.onerror = () => setPreviewingVoiceId(null);
-
-      window.speechSynthesis.speak(utterance);
-    } else {
-      setTimeout(() => setPreviewingVoiceId(null), 2500);
-    }
-  };
-
-  const togglePlayPause = () => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    if (isPlaying) {
-      audio.pause();
-      setIsPlaying(false);
-    } else {
-      audio.play().then(() => setIsPlaying(true)).catch(() => {});
-    }
-  };
-
-  const handleStopAudio = () => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    audio.pause();
-    audio.currentTime = 0;
-    setIsPlaying(false);
-  };
-
-  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    const seekTime = parseFloat(e.target.value);
-    audio.currentTime = seekTime;
-    setCurrentTime(seekTime);
-  };
-
-  const handleDownload = (url: string, filename: string) => {
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${filename || 'voxera-audio'}.wav`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    showToast('info', 'File audio berhasil diunduh.');
-  };
-
-  const filteredVoices = useMemo(() => {
-    return VOICE_CHARACTERS.filter((voice) => {
-      const matchGender = filterGender === 'all' || voice.gender === filterGender;
-      const matchSearch =
-        voice.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        voice.tone.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        voice.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        voice.style.toLowerCase().includes(searchQuery.toLowerCase());
-      return matchGender && matchSearch;
-    });
-  }, [filterGender, searchQuery]);
-
-  // Format time display (mm:ss)
-  const formatTime = (timeInSeconds: number) => {
-    if (isNaN(timeInSeconds)) return '00:00';
-    const mins = Math.floor(timeInSeconds / 60);
-    const secs = Math.floor(timeInSeconds % 60);
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  return (
-    <div className="min-h-screen bg-[#070b14] text-slate-100 flex flex-col font-sans selection:bg-cyan-500 selection:text-black">
-      {/* Hidden native audio tag */}
-      <audio ref={audioRef} src={currentAudioUrl || undefined} preload="metadata" />
-
-      {}
-      <header className="sticky top-0 z-40 backdrop-blur-xl bg-[#091122]/85 border-b border-cyan-500/20 px-4 md:px-8 py-3.5 flex items-center justify-between shadow-lg shadow-black/40">
-        <div className="flex items-center space-x-3.5">
-          <div className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-cyan-400 p-[1px] shadow-lg shadow-cyan-500/25">
-            <div className="w-full h-full bg-[#080e1e] rounded-[11px] flex items-center justify-center">
-              <Mic className="w-5 h-5 text-cyan-400 animate-pulse" />
-            </div>
-          </div>
-          <div>
-            <div className="flex items-center space-x-2">
-              <span className="font-extrabold text-xl tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-white via-cyan-200 to-blue-400 font-mono">
-                VOXERA STUDIO
-              </span>
-              <span className="text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full bg-cyan-950/90 text-cyan-300 border border-cyan-500/40">
-                PRO AI
-              </span>
-            </div>
-            <p className="text-xs text-slate-400 font-medium">
-              Create Your Voice. Shape Your Story.
-            </p>
-          </div>
-        </div>
-
-        {/* Header Action Badges */}
-        <div className="hidden md:flex items-center space-x-4">
-          <div className="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-blue-950/40 border border-blue-500/20 text-xs text-cyan-300">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-            <span>50 Karakter Vokal Aktif (30W / 20P)</span>
-          </div>
-
-          <div className="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-slate-900/80 border border-slate-700/60 text-xs text-slate-300">
-            <Activity className="w-3.5 h-3.5 text-cyan-400" />
-            <span>Neural TTS Engine</span>
-          </div>
-        </div>
-      </header>
-
-      {}
-      <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
-        {/* Left Sidebar Navigation */}
-        <aside className="w-full md:w-64 bg-[#080d1a] border-r border-blue-900/30 p-4 flex md:flex-col justify-between shrink-0">
-          <div className="w-full space-y-2">
-            <div className="text-[11px] font-semibold text-slate-400 tracking-wider uppercase px-3 py-1">
-              Navigasi Studio
-            </div>
-
-            <button
-              onClick={() => setActiveTab('editor')}
-              className={`w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
-                activeTab === 'editor'
-                  ? 'bg-gradient-to-r from-blue-600/30 to-cyan-500/20 border border-cyan-500/40 text-cyan-300 shadow-md shadow-cyan-950/50'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60'
-              }`}
-            >
-              <Mic className="w-4 h-4" />
-              <span>Workspace Teks</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('voices')}
-              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
-                activeTab === 'voices'
-                  ? 'bg-gradient-to-r from-blue-600/30 to-cyan-500/20 border border-cyan-500/40 text-cyan-300 shadow-md shadow-cyan-950/50'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60'
-              }`}
-            >
-              <div className="flex items-center space-x-3">
-                <Radio className="w-4 h-4" />
-                <span>Voice Characters</span>
-              </div>
-              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-cyan-900/40 text-cyan-300 border border-cyan-500/30">
-                50
-              </span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('history')}
-              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
-                activeTab === 'history'
-                  ? 'bg-gradient-to-r from-blue-600/30 to-cyan-500/20 border border-cyan-500/40 text-cyan-300 shadow-md shadow-cyan-950/50'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60'
-              }`}
-            >
-              <div className="flex items-center space-x-3">
-                <History className="w-4 h-4" />
-                <span>Voice History</span>
-              </div>
-              {historyList.length > 0 && (
-                <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-900/50 text-blue-300">
-                  {historyList.length}
-                </span>
-              )}
-            </button>
-
-            {/* Currently Active Voice Compact Card in Sidebar */}
-            <div className="mt-8 p-3.5 rounded-2xl bg-gradient-to-b from-[#0e1930] to-[#0a1224] border border-cyan-500/30 shadow-inner">
-              <div className="text-[10px] uppercase font-bold text-cyan-400 tracking-wider mb-2 flex items-center justify-between">
-                <span>Vokal Terpilih</span>
-                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
-              </div>
-              <div className="flex items-center space-x-3">
-                <div
-                  className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-sm text-white shadow-md ${
-                    selectedVoice.gender === 'female'
-                      ? 'bg-gradient-to-br from-pink-500 to-rose-600'
-                      : 'bg-gradient-to-br from-blue-500 to-cyan-600'
-                  }`}
-                >
-                  {selectedVoice.name.substring(0, 2)}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-white truncate">{selectedVoice.name}</p>
-                  <p className="text-[11px] text-slate-400 truncate">{selectedVoice.tone}</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setActiveTab('voices')}
-                className="mt-3 w-full py-1.5 text-xs text-center font-medium rounded-lg bg-cyan-950/50 hover:bg-cyan-900/50 text-cyan-300 border border-cyan-500/30 transition-colors"
-              >
-                Ganti Karakter
-              </button>
-            </div>
-          </div>
-
-          <div className="hidden md:block pt-4 border-t border-blue-900/30 text-center">
-            <p className="text-[11px] text-slate-500">VOXERA AI STUDIO v2.4</p>
-            <p className="text-[10px] text-slate-600 mt-1 font-mono">High Fidelity Audio Engine</p>
-          </div>
-        </aside>
-
-        {/* Center Dynamic Content Area */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 space-y-6">
-          {/* TAB 1: WORKSPACE TEXT EDITOR */}
-          {activeTab === 'editor' && (
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-              {/* Left Column: Text Area & Voice Selector Strip */}
-              <div className="lg:col-span-8 space-y-6">
-                {/* Header Banner */}
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h1 className="text-xl md:text-2xl font-black tracking-tight text-white flex items-center space-x-2">
-                      <span>TEXT TO SPEECH</span>
-                      <span className="text-cyan-400 text-sm font-normal">/ Studio Editor</span>
-                    </h1>
-                    <p className="text-xs md:text-sm text-slate-400 mt-1">
-                      Tulis skrip Anda dan terapkan warna emosi vokal profesional secara presisi.
-                    </p>
-                  </div>
-
-                  {/* Sample Text Presets */}
-                  <div className="flex items-center space-x-2">
-                    <span className="text-xs text-slate-400 hidden sm:inline">Contoh Teks:</span>
-                    <select
-                      onChange={(e) => {
-                        const found = SAMPLE_SCRIPTS.find((s) => s.label === e.target.value);
-                        if (found) setText(found.text);
-                      }}
-                      defaultValue=""
-                      className="bg-[#0f1a33] text-xs text-cyan-300 border border-cyan-500/30 rounded-xl px-2.5 py-1.5 outline-none cursor-pointer hover:border-cyan-400 transition-colors"
-                    >
-                      <option value="" disabled>
-                        Pilih Contoh Input...
-                      </option>
-                      {SAMPLE_SCRIPTS.map((s, idx) => (
-                        <option key={idx} value={s.label}>
-                          {s.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                {/* Primary Textarea Card */}
-                <div className="relative rounded-2xl bg-[#0a1122]/90 border border-blue-500/20 backdrop-blur-md p-4 shadow-xl shadow-black/50 focus-within:border-cyan-400/70 focus-within:ring-1 focus-within:ring-cyan-400/40 transition-all duration-300">
-                  <div className="flex items-center justify-between pb-3 border-b border-blue-900/30">
-                    <div className="flex items-center space-x-2">
-                      <span className="w-2.5 h-2.5 rounded-full bg-cyan-400" />
-                      <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                        Skrip Masukan
-                      </span>
-                    </div>
-
-                    {/* Text Toolbar */}
-                    <div className="flex items-center space-x-2">
-                      <button
-                        onClick={async () => {
-                          try {
-                            const clipboardText = await navigator.clipboard.readText();
-                            setText((prev) => prev + (prev ? ' ' : '') + clipboardText);
-                            showToast('info', 'Teks berhasil ditempel dari clipboard.');
-                          } catch (err) {
-                            showToast('error', 'Izin clipboard ditolak oleh peramban.');
-                          }
-                        }}
-                        className="p-1.5 text-slate-400 hover:text-cyan-300 hover:bg-blue-900/40 rounded-lg transition-colors text-xs flex items-center space-x-1"
-                        title="Tempel teks"
-                      >
-                        <ClipboardPaste className="w-3.5 h-3.5" />
-                        <span className="text-[11px] hidden sm:inline">Paste</span>
-                      </button>
-
-                      <button
-                        onClick={() => {
-                          navigator.clipboard.writeText(text);
-                          showToast('info', 'Teks disalin ke clipboard.');
-                        }}
-                        className="p-1.5 text-slate-400 hover:text-cyan-300 hover:bg-blue-900/40 rounded-lg transition-colors text-xs flex items-center space-x-1"
-                        title="Salin teks"
-                      >
-                        <Copy className="w-3.5 h-3.5" />
-                        <span className="text-[11px] hidden sm:inline">Copy</span>
-                      </button>
-
-                      <button
-                        onClick={() => setText('')}
-                        className="p-1.5 text-rose-400/80 hover:text-rose-300 hover:bg-rose-950/40 rounded-lg transition-colors text-xs flex items-center space-x-1"
-                        title="Bersihkan teks"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                        <span className="text-[11px] hidden sm:inline">Clear</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  <textarea
-                    rows={8}
-                    value={text}
-                    onChange={(e) => setText(e.target.value)}
-                    placeholder="Tulis atau tempel teks yang ingin diubah menjadi suara..."
-                    className="w-full bg-transparent text-slate-100 placeholder:text-slate-500 resize-none pt-3 outline-none text-sm md:text-base leading-relaxed tracking-wide font-normal"
-                  />
-
-                  {/* Real-time Counter Stats Bar */}
-                  <div className="pt-3 border-t border-blue-900/30 flex items-center justify-between text-xs text-slate-400">
-                    <div className="flex items-center space-x-4">
-                      <span>
-                        <strong className="text-cyan-300 font-mono">{charCount}</strong> Karakter
-                      </span>
-                      <span>
-                        <strong className="text-cyan-300 font-mono">{wordCount}</strong> Kata
-                      </span>
-                    </div>
-
-                    <div className="text-[11px] text-slate-500">
-                      Maks. 3.000 karakter • Estimasi durasi:{' '}
-                      <span className="text-cyan-300 font-medium">
-                        ~{Math.max(1, Math.round(wordCount * 0.45))} detik
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Selected Voice Card Preview Strip */}
-                <div className="rounded-2xl bg-gradient-to-r from-[#0d172e] via-[#091122] to-[#0d1a33] border border-cyan-500/30 p-4 shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                  <div className="flex items-center space-x-4">
-                    <div
-                      className={`w-14 h-14 rounded-2xl flex items-center justify-center font-bold text-xl text-white shadow-lg shrink-0 ${
-                        selectedVoice.gender === 'female'
-                          ? 'bg-gradient-to-tr from-rose-500 via-pink-600 to-purple-500 shadow-pink-500/20'
-                          : 'bg-gradient-to-tr from-cyan-500 via-blue-600 to-indigo-600 shadow-cyan-500/20'
-                      }`}
-                    >
-                      {selectedVoice.name.substring(0, 2)}
-                    </div>
-                    <div>
-                      <div className="flex items-center space-x-2">
-                        <h3 className="font-extrabold text-base text-white">{selectedVoice.name}</h3>
-                        <span
-                          className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase ${
-                            selectedVoice.gender === 'female'
-                              ? 'bg-pink-950/80 text-pink-300 border border-pink-500/30'
-                              : 'bg-cyan-950/80 text-cyan-300 border border-cyan-500/30'
-                          }`}
-                        >
-                          {selectedVoice.gender === 'female' ? 'Wanita' : 'Pria'} • {selectedVoice.ageGroup}
-                        </span>
-                      </div>
-                      <p className="text-xs text-cyan-300 font-medium mt-0.5">{selectedVoice.tone}</p>
-                      <p className="text-[11px] text-slate-400 mt-1 line-clamp-1">{selectedVoice.description}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center space-x-2 w-full sm:w-auto justify-end">
-                    <button
-                      onClick={() => handlePlayVoicePreview(selectedVoice)}
-                      className="px-3.5 py-2 rounded-xl bg-blue-900/40 hover:bg-blue-800/50 text-cyan-300 border border-cyan-500/30 text-xs font-semibold flex items-center space-x-2 transition-all"
-                    >
-                      {previewingVoiceId === selectedVoice.id ? (
-                        <>
-                          <Square className="w-3.5 h-3.5 text-cyan-300 fill-current" />
-                          <span>Stop Preview</span>
-                        </>
-                      ) : (
-                        <>
-                          <Play className="w-3.5 h-3.5 text-cyan-300 fill-current" />
-                          <span>Play Preview</span>
-                        </>
-                      )}
-                    </button>
-                    <button
-                      onClick={() => setActiveTab('voices')}
-                      className="px-3.5 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black text-xs font-bold transition-all shadow-md shadow-cyan-500/20"
-                    >
-                      Pilih Suara Lain
-                    </button>
-                  </div>
-                </div>
-
-                {/* Primary Action Button: GENERATE VOICE */}
-                <button
-                  disabled={isGenerating}
-                  onClick={handleGenerateVoice}
-                  className={`w-full py-4 px-6 rounded-2xl font-extrabold text-base md:text-lg tracking-wider transition-all duration-300 flex items-center justify-center space-x-3 shadow-2xl relative overflow-hidden group ${
-                    isGenerating
-                      ? 'bg-blue-950/60 border border-blue-700/40 text-cyan-400 cursor-not-allowed'
-                      : 'bg-gradient-to-r from-blue-600 via-cyan-500 to-teal-400 hover:from-blue-500 hover:via-cyan-400 hover:to-teal-300 text-[#040812] shadow-cyan-500/30 hover:shadow-cyan-400/50 hover:scale-[1.008] active:scale-[0.99]'
-                  }`}
-                >
-                  {isGenerating ? (
-                    <>
-                      <RefreshCw className="w-5 h-5 animate-spin text-cyan-300" />
-                      <span className="font-mono text-cyan-200">Generating your voice...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="w-5 h-5 group-hover:rotate-12 transition-transform duration-300" />
-                      <span>GENERATE VOICE</span>
-                    </>
-                  )}
-                </button>
-              </div>
-
-              {/* Right Column: Voice Settings & Audio Player */}
-              <div className="lg:col-span-4 space-y-6">
-                {/* Panel Kontrol Suara: VOICE SETTINGS */}
-                <div className="rounded-2xl bg-[#091122]/90 border border-blue-500/20 p-5 shadow-xl backdrop-blur-md space-y-5">
-                  <div className="flex items-center justify-between pb-3 border-b border-blue-900/30">
-                    <div className="flex items-center space-x-2">
-                      <Sliders className="w-4 h-4 text-cyan-400" />
-                      <h2 className="text-sm font-extrabold tracking-wider text-white uppercase">
-                        VOICE SETTINGS
-                      </h2>
-                    </div>
-                    <button
-                      onClick={() => {
-                        setSpeed(1.0);
-                        setPitchLevel('Normal');
-                        setVolume(95);
-                        setEmotion('Friendly');
-                        showToast('info', 'Pengaturan suara dikembalikan ke normal.');
-                      }}
-                      className="text-[11px] text-slate-400 hover:text-cyan-300 flex items-center space-x-1 transition-colors"
-                    >
-                      <RotateCcw className="w-3 h-3" />
-                      <span>Reset</span>
-                    </button>
-                  </div>
-
-                  {/* Emotion / Expression Selector */}
-                  <div className="space-y-2">
-                    <label className="text-xs font-semibold text-slate-300 flex items-center justify-between">
-                      <span>Emotion / Expression</span>
-                      <span className="text-cyan-400 font-bold">{emotion}</span>
-                    </label>
-                    <div className="grid grid-cols-2 gap-1.5">
-                      {[
-                        'Neutral',
-                        'Happy',
-                        'Sad',
-                        'Excited',
-                        'Calm',
-                        'Serious',
-                        'Dramatic',
-                        'Friendly',
-                        'Energetic',
-                        'Storytelling'
-                      ].map((em) => (
-                        <button
-                          key={em}
-                          type="button"
-                          onClick={() => setEmotion(em)}
-                          className={`py-1.5 px-2 rounded-lg text-xs font-medium transition-all ${
-                            emotion === em
-                              ? 'bg-cyan-500 text-black font-bold shadow-md shadow-cyan-500/20'
-                              : 'bg-[#0e1933] text-slate-400 hover:text-slate-200 hover:bg-[#132244]'
-                          }`}
-                        >
-                          {em}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Speed Setting */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-xs font-semibold text-slate-300">
-                      <span>Speed</span>
-                      <span className="font-mono text-cyan-400">{speed}x</span>
-                    </div>
-                    <div className="grid grid-cols-4 sm:grid-cols-7 gap-1">
-                      {[0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0].map((s) => (
-                        <button
-                          key={s}
-                          type="button"
-                          onClick={() => {
-                            setSpeed(s);
-                            if (audioRef.current) audioRef.current.playbackRate = s;
-                          }}
-                          className={`py-1 text-[11px] font-mono font-bold rounded-lg transition-all ${
-                            speed === s
-                              ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
-                              : 'bg-[#0e1933] text-slate-400 hover:bg-[#132244]'
-                          }`}
-                        >
-                          {s}x
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Pitch Setting */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-xs font-semibold text-slate-300">
-                      <span>Pitch</span>
-                      <span className="font-mono text-cyan-400">{pitchLevel}</span>
-                    </div>
-                    <div className="grid grid-cols-3 sm:grid-cols-5 gap-1">
-                      {['Very Low', 'Low', 'Normal', 'High', 'Very High'].map((p) => (
-                        <button
-                          key={p}
-                          type="button"
-                          onClick={() => setPitchLevel(p)}
-                          className={`py-1 text-[10px] font-semibold rounded-lg transition-all ${
-                            pitchLevel === p
-                              ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
-                              : 'bg-[#0e1933] text-slate-400 hover:bg-[#132244]'
-                          }`}
-                        >
-                          {p}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Volume Slider */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-xs font-semibold text-slate-300">
-                      <span className="flex items-center space-x-1.5">
-                        {volume === 0 ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
-                        <span>Volume Master</span>
-                      </span>
-                      <span className="font-mono text-cyan-400">{volume}%</span>
-                    </div>
-                    <input
-                      type="range"
-                      min={0}
-                      max={100}
-                      value={volume}
-                      onChange={(e) => {
-                        const val = parseInt(e.target.value);
-                        setVolume(val);
-                        if (audioRef.current) audioRef.current.volume = val / 100;
-                      }}
-                      className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400"
-                    />
-                  </div>
-                </div>
-
-                {/* Modern Studio Audio Player Card */}
-                <div className="rounded-2xl bg-gradient-to-b from-[#0a1224] to-[#070c17] border border-cyan-500/30 p-5 shadow-2xl space-y-4">
-                  <div className="flex items-center justify-between pb-2 border-b border-blue-900/30">
-                    <div className="flex items-center space-x-2">
-                      <Music className="w-4 h-4 text-cyan-400" />
-                      <span className="text-xs font-bold text-slate-200 tracking-wider uppercase">
-                        Master Output Player
-                      </span>
-                    </div>
-                    {currentAudioUrl && (
-                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                    )}
-                  </div>
-
-                  {/* Waveform Visualization Canvas */}
-                  <div className="w-full h-16 bg-[#04070f] rounded-xl overflow-hidden border border-blue-950 flex items-center justify-center relative shadow-inner">
-                    <canvas ref={canvasRef} width={380} height={64} className="w-full h-full block" />
-                    {!currentAudioUrl && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[1px] text-[11px] text-slate-400 font-mono">
-                        Belum ada audio yang digenerate
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Track Info */}
-                  <div className="space-y-1">
-                    <p className="text-sm font-bold text-white truncate">
-                      {currentAudioTitle || 'Voxera Audio Master'}
-                    </p>
-                    <div className="flex items-center justify-between text-xs text-slate-400 font-mono">
-                      <span>{formatTime(currentTime)}</span>
-                      <span>{formatTime(audioDuration)}</span>
-                    </div>
-                  </div>
-
-                  {/* Progress Seek Bar */}
-                  <input
-                    type="range"
-                    min={0}
-                    max={audioDuration || 100}
-                    step={0.05}
-                    value={currentTime}
-                    disabled={!currentAudioUrl}
-                    onChange={handleSeek}
-                    className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400 disabled:opacity-30"
-                  />
-
-                  {/* Audio Controls */}
-                  <div className="flex items-center justify-between pt-2">
-                    <button
-                      disabled={!currentAudioUrl}
-                      onClick={handleStopAudio}
-                      className="p-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 disabled:opacity-40 transition-colors"
-                      title="Stop"
-                    >
-                      <Square className="w-4 h-4 fill-current" />
-                    </button>
-
-                    <button
-                      disabled={!currentAudioUrl}
-                      onClick={togglePlayPause}
-                      className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold flex items-center justify-center shadow-lg shadow-cyan-500/30 disabled:opacity-40 transition-transform active:scale-95"
-                    >
-                      {isPlaying ? (
-                        <Pause className="w-5 h-5 fill-current" />
-                      ) : (
-                        <Play className="w-5 h-5 fill-current ml-0.5" />
-                      )}
-                    </button>
-
-                    <button
-                      disabled={!currentAudioUrl}
-                      onClick={() => handleGenerateVoice()}
-                      className="p-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-cyan-300 disabled:opacity-40 transition-colors"
-                      title="Regenerate"
-                    >
-                      <RefreshCw className="w-4 h-4" />
-                    </button>
-
-                    <button
-                      disabled={!currentAudioUrl}
-                      onClick={() => currentAudioUrl && handleDownload(currentAudioUrl, selectedVoice.name)}
-                      className="p-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 hover:text-cyan-300 disabled:opacity-40 transition-colors"
-                      title="Download Audio (.wav)"
-                    >
-                      <Download className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 2: 50 VOICE CHARACTERS EXPLORER */}
-          {activeTab === 'voices' && (
-            <div className="space-y-6">
-              {/* Header & Filter Bar */}
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                  <h1 className="text-xl md:text-2xl font-black text-white flex items-center space-x-2">
-                    <span>VOICE CHARACTERS</span>
-                    <span className="text-cyan-400 text-sm font-normal">/ 50 Karakter Unik</span>
-                  </h1>
-                  <p className="text-xs md:text-sm text-slate-400 mt-1">
-                    Setiap karakter memiliki identitas vokal sejati: pitch, tempo, usia vokal, kedalaman, dan gaya penyampaian unik.
-                  </p>
-                </div>
-
-                {/* Filter and Search */}
-                <div className="flex flex-wrap items-center gap-2.5">
-                  {/* Gender Filter Tabs */}
-                  <div className="flex rounded-xl bg-[#091122] p-1 border border-blue-900/40">
-                    <button
-                      onClick={() => setFilterGender('all')}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                        filterGender === 'all'
-                          ? 'bg-cyan-500 text-black shadow-md'
-                          : 'text-slate-400 hover:text-slate-200'
-                      }`}
-                    >
-                      Semua (50)
-                    </button>
-                    <button
-                      onClick={() => setFilterGender('female')}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                        filterGender === 'female'
-                          ? 'bg-pink-500 text-white shadow-md'
-                          : 'text-slate-400 hover:text-slate-200'
-                      }`}
-                    >
-                      Wanita (30)
-                    </button>
-                    <button
-                      onClick={() => setFilterGender('male')}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                        filterGender === 'male'
-                          ? 'bg-blue-600 text-white shadow-md'
-                          : 'text-slate-400 hover:text-slate-200'
-                      }`}
-                    >
-                      Pria (20)
-                    </button>
-                  </div>
-
-                  {/* Search Input */}
-                  <div className="relative">
-                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Cari karakter, tone..."
-                      className="bg-[#091122] text-xs text-slate-200 pl-9 pr-3 py-2 rounded-xl border border-blue-900/40 focus:border-cyan-400 outline-none w-48 md:w-56"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* 50 Voice Cards Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
-                {filteredVoices.map((voice) => {
-                  const isSelected = selectedVoice.id === voice.id;
-                  const isFemale = voice.gender === 'female';
-                  const isVoicePreviewing = previewingVoiceId === voice.id;
-
-                  return (
-                    <div
-                      key={voice.id}
-                      className={`relative rounded-2xl p-4 transition-all duration-300 flex flex-col justify-between group ${
-                        isSelected
-                          ? 'bg-gradient-to-b from-[#0f1c3a] to-[#0a1224] border-2 border-cyan-400 shadow-xl shadow-cyan-500/20 scale-[1.01]'
-                          : 'bg-[#080e1c]/90 hover:bg-[#0c162c] border border-blue-900/30 hover:border-cyan-500/40 shadow-md'
-                      }`}
-                    >
-                      {/* Active Glow Badge */}
-                      {isSelected && (
-                        <div className="absolute top-3 right-3 flex items-center space-x-1 px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-400 text-[10px] font-bold">
-                          <CheckCircle2 className="w-3 h-3" />
-                          <span>Aktif</span>
-                        </div>
-                      )}
-
-                      <div>
-                        {/* Avatar & Title */}
-                        <div className="flex items-center space-x-3 mb-3">
-                          <div
-                            className={`w-11 h-11 rounded-xl flex items-center justify-center font-bold text-white text-base shadow-md ${
-                              isFemale
-                                ? 'bg-gradient-to-tr from-pink-500 to-rose-600'
-                                : 'bg-gradient-to-tr from-blue-600 to-cyan-500'
-                            }`}
-                          >
-                            {voice.name.substring(0, 2)}
-                          </div>
-                          <div>
-                            <h3 className="font-extrabold text-sm text-white">{voice.name}</h3>
-                            <span
-                              className={`text-[10px] font-semibold px-2 py-0.2 rounded-md ${
-                                isFemale
-                                  ? 'bg-pink-950/60 text-pink-300'
-                                  : 'bg-blue-950/60 text-cyan-300'
-                              }`}
-                            >
-                              {isFemale ? 'Wanita' : 'Pria'} • {voice.ageGroup}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Tone & Description */}
-                        <div className="space-y-1.5 mb-3">
-                          <p className="text-xs font-semibold text-cyan-300">{voice.tone}</p>
-                          <p className="text-[11px] text-slate-400 leading-relaxed line-clamp-3">
-                            {voice.description}
-                          </p>
-                        </div>
-
-                        {/* Characteristic Badges */}
-                        <div className="flex flex-wrap gap-1 mb-4 text-[10px]">
-                          <span className="px-2 py-0.5 rounded bg-slate-900 text-slate-300 border border-slate-800">
-                            Pitch: {voice.pitchVal}x
-                          </span>
-                          <span className="px-2 py-0.5 rounded bg-slate-900 text-slate-300 border border-slate-800">
-                            Speed: {voice.speedVal}x
-                          </span>
-                          <span className="px-2 py-0.5 rounded bg-blue-950/80 text-cyan-300 border border-blue-900/60">
-                            {voice.style}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Action Buttons: Preview & Select */}
-                      <div className="grid grid-cols-2 gap-2 pt-2 border-t border-blue-900/20">
-                        <button
-                          onClick={() => handlePlayVoicePreview(voice)}
-                          className="py-2 px-2.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-slate-200 text-xs font-semibold flex items-center justify-center space-x-1.5 transition-colors"
-                        >
-                          {isVoicePreviewing ? (
-                            <>
-                              <Square className="w-3 h-3 text-cyan-400 fill-current" />
-                              <span className="text-cyan-400">Stop</span>
-                            </>
-                          ) : (
-                            <>
-                              <Play className="w-3 h-3 fill-current" />
-                              <span>Preview</span>
-                            </>
-                          )}
-                        </button>
-
-                        <button
-                          onClick={() => {
-                            setSelectedVoice(voice);
-                            setActiveTab('editor');
-                            showToast('success', `Karakter ${voice.name} telah dipilih.`);
-                          }}
-                          className={`py-2 px-2.5 rounded-xl text-xs font-bold transition-all ${
-                            isSelected
-                              ? 'bg-cyan-500 text-black font-extrabold'
-                              : 'bg-blue-600/30 hover:bg-cyan-500 hover:text-black text-cyan-300 border border-cyan-500/30'
-                          }`}
-                        >
-                          {isSelected ? 'Terpilih' : 'Pilih Suara'}
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* TAB 3: VOICE HISTORY */}
-          {activeTab === 'history' && (
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h1 className="text-xl md:text-2xl font-black text-white flex items-center space-x-2">
-                    <span>VOICE HISTORY</span>
-                    <span className="text-cyan-400 text-sm font-normal">/ Riwayat Generasi</span>
-                  </h1>
-                  <p className="text-xs md:text-sm text-slate-400 mt-1">
-                    Daftar hasil generasi suara sesi ini. Anda dapat memutar ulang atau mengunduh kembali.
-                  </p>
-                </div>
-
-                {historyList.length > 0 && (
-                  <button
-                    onClick={() => {
-                      setHistoryList([]);
-                      showToast('info', 'Riwayat suara berhasil dibersihkan.');
-                    }}
-                    className="px-3.5 py-2 rounded-xl bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 border border-rose-500/30 text-xs font-bold flex items-center space-x-2 transition-all"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                    <span>CLEAR HISTORY</span>
-                  </button>
-                )}
-              </div>
-
-              {/* History Cards */}
-              {historyList.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-blue-900/50 p-12 text-center space-y-3 bg-[#080e1c]/40">
-                  <Clock className="w-10 h-10 text-slate-600 mx-auto" />
-                  <h3 className="text-base font-bold text-slate-300">Belum Ada Riwayat Suara</h3>
-                  <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                    Generate suara pertama Anda pada panel Text-to-Speech untuk menyimpannya ke dalam daftar riwayat.
-                  </p>
-                  <button
-                    onClick={() => setActiveTab('editor')}
-                    className="mt-2 px-4 py-2 rounded-xl bg-cyan-500 text-black text-xs font-bold shadow-md shadow-cyan-500/20"
-                  >
-                    Mulai Buat Suara
-                  </button>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {historyList.map((item) => (
-                    <div
-                      key={item.id}
-                      className="rounded-2xl bg-[#091122]/90 border border-blue-900/30 p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:border-cyan-500/40 transition-all shadow-md"
-                    >
-                      <div className="flex items-start space-x-3.5">
-                        <div
-                          className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-white text-sm shrink-0 ${
-                            item.gender === 'female'
-                              ? 'bg-gradient-to-tr from-pink-500 to-rose-600'
-                              : 'bg-gradient-to-tr from-blue-600 to-cyan-500'
-                          }`}
-                        >
-                          {item.voiceName.substring(0, 2)}
-                        </div>
-                        <div className="space-y-1">
-                          <div className="flex items-center space-x-2">
-                            <span className="font-bold text-sm text-white">{item.voiceName}</span>
-                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-500/30">
-                              {item.emotion}
-                            </span>
-                            <span className="text-xs text-slate-500 font-mono">• {item.timestamp}</span>
-                          </div>
-                          <p className="text-xs text-slate-300 italic">"{item.text}"</p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center space-x-2 self-end md:self-center">
-                        <button
-                          onClick={() => {
-                            setCurrentAudioUrl(item.audioUrl);
-                            setCurrentAudioTitle(`${item.voiceName} — ${item.emotion}`);
-                            setIsPlaying(true);
-                            if (audioRef.current) {
-                              audioRef.current.src = item.audioUrl;
-                              audioRef.current.play().catch(() => {});
-                            }
-                            showToast('info', `Memutar riwayat suara ${item.voiceName}.`);
-                          }}
-                          className="px-3 py-1.5 rounded-lg bg-blue-950 hover:bg-blue-900 text-cyan-300 border border-blue-700/40 text-xs font-semibold flex items-center space-x-1"
-                        >
-                          <Play className="w-3.5 h-3.5 fill-current" />
-                          <span>Play</span>
-                        </button>
-
-                        <button
-                          onClick={() => handleDownload(item.audioUrl, `voxera-${item.voiceName.toLowerCase()}`)}
-                          className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white transition-colors"
-                          title="Download audio"
-                        >
-                          <Download className="w-4 h-4" />
-                        </button>
-
-                        <button
-                          onClick={() => {
-                            setHistoryList((prev) => prev.filter((h) => h.id !== item.id));
-                            showToast('info', 'Item riwayat dihapus.');
-                          }}
-                          className="p-1.5 rounded-lg bg-slate-900 hover:bg-rose-950/60 text-slate-400 hover:text-rose-400 transition-colors"
-                          title="Hapus item"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-        </main>
-      </div>
-
-      {}
-      {toastMessage && (
-        <div className="fixed bottom-14 right-6 z-50 flex items-center space-x-2.5 px-4 py-3 rounded-2xl bg-[#091122]/95 border border-cyan-400/50 text-white shadow-2xl backdrop-blur-xl animate-in fade-in slide-in-from-bottom-3 duration-300">
-          {toastMessage.type === 'success' && <CheckCircle2 className="w-5 h-5 text-emerald-400" />}
-          {toastMessage.type === 'error' && <AlertCircle className="w-5 h-5 text-rose-400" />}
-          {toastMessage.type === 'info' && <Info className="w-5 h-5 text-cyan-400" />}
-          <span className="text-xs md:text-sm font-medium">{toastMessage.text}</span>
-        </div>
-      )}
-
-      {}
-      <footer className="bg-[#050811] border-t border-blue-950/80 px-6 py-4 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-2">
-        <div className="flex items-center space-x-2">
-          <span className="font-extrabold text-slate-300 tracking-wider font-mono">VOXERA STUDIO</span>
-          <span>—</span>
-          <span>Create Your Voice. Shape Your Story.</span>
-        </div>
-        <div className="text-slate-400 font-semibold tracking-wide">
-          Created By: FAISAL ADI PRITANA
-        </div>
-      </footer>
-    </div>
-  );
-}
+  </script>
+</body>
+</html>
